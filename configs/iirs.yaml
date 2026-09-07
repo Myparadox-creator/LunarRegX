@@ -1,0 +1,12 @@
+sensor_name: "CHANDRAYAAN2_IIRS"
+gsd: 80.0
+bit_depth: 12
+wavelength_nm: 1500.0
+recommended_preprocessing:
+  use_clahe: true
+  clahe_clip_limit: 3.5
+  use_bandpass: true
+pyramid_levels: 1
+matcher_settings:
+  ratio_thresh: 0.70
+  min_matches: 8\n

@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.class
+
+# Testing caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary uploads
+results/temp_uploads/
+
+# Environment
+.venv/
+env/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.BIN/
+.DS_Store

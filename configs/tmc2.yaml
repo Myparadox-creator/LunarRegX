@@ -1,0 +1,15 @@
+sensor_name: "CHANDRAYAAN2_TMC2"
+gsd: 5.0
+bit_depth: 10
+wavelength_nm: 650.0
+incidence_angle_deg: 40.0
+solar_elevation_deg: 50.0
+solar_azimuth_deg: 130.0
+recommended_preprocessing:
+  use_clahe: true
+  clahe_clip_limit: 3.0
+  use_bandpass: true
+pyramid_levels: 2
+matcher_settings:
+  ratio_thresh: 0.75
+  min_matches: 12\n

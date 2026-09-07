@@ -1,0 +1,12 @@
+sensor_name: "LRO_LROC_WAC"
+gsd: 100.0
+bit_depth: 8
+wavelength_nm: 643.0
+recommended_preprocessing:
+  use_clahe: true
+  clahe_clip_limit: 2.0
+  use_bandpass: true
+pyramid_levels: 1
+matcher_settings:
+  ratio_thresh: 0.72
+  min_matches: 10\n

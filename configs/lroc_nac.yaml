@@ -1,0 +1,15 @@
+sensor_name: "LRO_LROC_NAC"
+gsd: 0.50
+bit_depth: 12
+wavelength_nm: 600.0
+incidence_angle_deg: 38.0
+solar_elevation_deg: 52.0
+solar_azimuth_deg: 140.0
+recommended_preprocessing:
+  use_clahe: true
+  clahe_clip_limit: 2.5
+  use_bandpass: false
+pyramid_levels: 3
+matcher_settings:
+  ratio_thresh: 0.78
+  min_matches: 15\n
