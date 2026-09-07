@@ -26,6 +26,13 @@ streamlit run app/streamlit_app.py
 python register.py --source data/samples/pair1_baseline_src.png --reference data/samples/pair1_baseline_ref.png --output_dir results/pair1
 ```
 
+## Running the FastAPI REST API Backend
+```bash
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+Interactive OpenAPI/Swagger documentation is available at:
+`http://localhost:8000/docs`
+
 ## Running Automated Benchmarks & Ablation Studies
 ```bash
 python experiments/benchmark.py
@@ -36,3 +43,4 @@ python experiments/ablation.py
 ```bash
 python -m pytest -o pythonpath=. -v
 ```
+
