@@ -56,6 +56,13 @@ st.sidebar.header("⚙️ System Configuration")
 
 mode = st.sidebar.radio("Operation Mode", ["🏆 SIH Judge Demonstration Mode", "🔬 Custom Registration & Upload"])
 
+# Detect mode switch to prevent stale session state collisions
+if "current_mode" not in st.session_state:
+    st.session_state["current_mode"] = mode
+elif st.session_state["current_mode"] != mode:
+    st.session_state["current_mode"] = mode
+    st.session_state.pop("reg_result", None)
+
 # Sensor Profiles
 sensor_choice = st.sidebar.selectbox(
     "Target Sensor Profile",
@@ -115,55 +122,107 @@ if mode == "🏆 SIH Judge Demonstration Mode":
 
     src_path, ref_path = pair_files.get(scenario, (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"))
     if src_path.exists() and ref_path.exists():
-        src_lunar = load_lunar_image(src_path, gsd_override=selected_gsd)
-        ref_lunar = load_lunar_image(ref_path, gsd_override=selected_gsd)
+        try:
+            src_lunar = load_lunar_image(src_path, gsd_override=selected_gsd)
+            ref_lunar = load_lunar_image(ref_path, gsd_override=selected_gsd)
+        except Exception as e:
+            st.error(f"❌ Failed to load benchmark image: {e}")
     else:
         st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.")
 
 else:
     st.sidebar.subheader("Upload Custom Lunar Images")
-    up_src = st.sidebar.file_uploader("Upload Source / Moving Image (TIFF/PNG)", type=["png", "jpg", "tif", "tiff"])
-    up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image (TIFF/PNG)", type=["png", "jpg", "tif", "tiff"])
+    st.sidebar.caption("Supported: 8/12/16-bit GeoTIFF, TIFF, PNG, JPEG")
+    up_src = st.sidebar.file_uploader("Upload Source / Moving Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+    up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
 
     if up_src and up_ref:
-        # Save temp files
-        tmp_dir = ROOT_DIR / "results" / "temp_uploads"
-        tmp_dir.mkdir(parents=True, exist_ok=True)
-        s_p = tmp_dir / up_src.name
-        r_p = tmp_dir / up_ref.name
-        s_p.write_bytes(up_src.read())
-        r_p.write_bytes(up_ref.read())
-        src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
-        ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+        try:
+            tmp_dir = ROOT_DIR / "results" / "temp_uploads"
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            s_p = tmp_dir / up_src.name
+            r_p = tmp_dir / up_ref.name
+            s_p.write_bytes(up_src.read())
+            r_p.write_bytes(up_ref.read())
+            src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
+            ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+        except Exception as e:
+            st.sidebar.error(f"❌ Error loading uploaded images: {e}")
+            src_lunar = None
+            ref_lunar = None
+    elif up_src or up_ref:
+        st.sidebar.info("ℹ️ Uploaded 1 of 2 images. Please upload the matching pair to proceed.")
 
-# Registration Execution Button
+# Guidance screen when in Custom Upload mode and images are not yet provided
+if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lunar is None):
+    if "reg_result" not in st.session_state:
+        st.info("👈 **Upload both a Source / Moving image and a Reference / Fixed image in the sidebar to begin custom registration.**")
+        
+        c_g1, c_g2 = st.columns(2)
+        with c_g1:
+            st.markdown("""
+            ### 🛰️ Supported Lunar Sensors
+            * **Chandrayaan-2 OHRC:** Ultra-high resolution ($0.25\\text{ m/px}$)
+            * **Chandrayaan-2 TMC-2:** Stereo elevation mapping ($5.0\\text{ m/px}$)
+            * **Chandrayaan-2 IIRS:** Hyperspectral mineralogy ($80\\text{ m/px}$)
+            * **LRO LROC-NAC:** Narrow Angle Camera ($0.50\\text{ m/px}$)
+            * **LRO LROC-WAC:** Wide Angle Camera ($100\\text{ m/px}$)
+            """)
+        with c_g2:
+            st.markdown("""
+            ### 📐 Recommended Input Specifications
+            * **File Formats:** GeoTIFF, TIFF, PNG, JPEG
+            * **Radiometric Depths:** 8-bit, 12-bit raw, 16-bit, 32-bit float
+            * **Dynamic Range:** Automatic percentile ($1\\%$ to $99\\%$) stretch and nodata masking
+            * **Illumination Resilience:** Fourier Phase Congruency resolves $180^\\circ$ shadow inversions
+            """)
+
+# Registration Execution Button & Input Previews
 if src_lunar is not None and ref_lunar is not None:
     col_a, col_b = st.columns(2)
     with col_a:
-        st.image(src_lunar.display_8bit, caption=f"Source / Moving Image ({src_lunar.width}x{src_lunar.height})", use_container_width=True)
+        st.image(src_lunar.display_8bit, caption=f"Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
     with col_b:
-        st.image(ref_lunar.display_8bit, caption=f"Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height})", use_container_width=True)
+        st.image(ref_lunar.display_8bit, caption=f"Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
 
     if st.button("🚀 EXECUTE REGISTRATION PIPELINE", type="primary", use_container_width=True):
         with st.spinner("Executing coarse-to-fine hybrid registration pipeline..."):
-            cfg = RegistrationPipelineConfig(
-                feature_method=engine_key,
-                preferred_model=model_key,
-                use_clahe=use_clahe,
-                use_spatial_anms=use_anms,
-                use_subpixel=use_subpixel
-            )
-            pipeline = LunarRegistrationPipeline(config=cfg)
-            res = pipeline.run(src_lunar, ref_lunar)
-            st.session_state["reg_result"] = res
+            try:
+                cfg = RegistrationPipelineConfig(
+                    feature_method=engine_key,
+                    preferred_model=model_key,
+                    use_clahe=use_clahe,
+                    use_spatial_anms=use_anms,
+                    use_subpixel=use_subpixel
+                )
+                pipeline = LunarRegistrationPipeline(config=cfg)
+                res = pipeline.run(src_lunar, ref_lunar)
+                st.session_state["reg_result"] = res
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Registration could not be completed: {str(e)}")
+                st.markdown("""
+                > **💡 Troubleshooting Tips:**
+                > 1. Ensure both lunar images cover overlapping geographic terrain.
+                > 2. For severe illumination or shadow flips, ensure **PHASE_STRUCTURAL (Proposed)** is selected.
+                > 3. If images have large scale differences, ensure the matching sensor profile GSD is selected.
+                """)
 
 # Display Results if available
 if "reg_result" in st.session_state:
     res = st.session_state["reg_result"]
     m = res.metrics
+    s_img = res.source_image
+    r_img = res.reference_image
 
     st.markdown("---")
-    st.subheader("📊 Registration Performance Dashboard")
+    c_head1, c_head2 = st.columns([5, 1])
+    with c_head1:
+        st.subheader("📊 Registration Performance Dashboard")
+    with c_head2:
+        if st.button("🔄 Clear Results", use_container_width=True):
+            st.session_state.pop("reg_result", None)
+            st.rerun()
 
     # Status Banner
     if m.status == "SUCCESS":
@@ -202,9 +261,9 @@ if "reg_result" in st.session_state:
 
     with tabs[0]:
         st.write("**Stage 1: Raw Radiometric Inputs and Metadata**")
-        st.write(f"Source Image: {src_lunar.width}x{src_lunar.height} | Dynamic Range: {src_lunar.metadata.bit_depth}-bit | GSD: {src_lunar.metadata.gsd} m/px")
-        st.write(f"Reference Image: {ref_lunar.width}x{ref_lunar.height} | Reference GSD: {ref_lunar.metadata.gsd} m/px")
-        st.image([src_lunar.display_8bit, ref_lunar.display_8bit], caption=["Source Image", "Reference Image"], width=400)
+        st.write(f"Source Image: {s_img.width}x{s_img.height} | Dynamic Range: {s_img.metadata.bit_depth}-bit | GSD: {s_img.metadata.gsd} m/px")
+        st.write(f"Reference Image: {r_img.width}x{r_img.height} | Reference GSD: {r_img.metadata.gsd} m/px")
+        st.image([s_img.display_8bit, r_img.display_8bit], caption=["Source Image", "Reference Image"], width=400)
 
     with tabs[1]:
         st.write("**Stage 2: Illumination-Robust Phase Congruency & Reliability**")
@@ -212,8 +271,8 @@ if "reg_result" in st.session_state:
         from src.illumination.phase_congruency import LogGaborPhaseCongruency
         from src.illumination.reliability import compute_terrain_reliability
         lg = LogGaborPhaseCongruency()
-        pc_r = lg.compute(ref_lunar.normalized)
-        rel_r = compute_terrain_reliability(ref_lunar.normalized, pc_r.max_moment)
+        pc_r = lg.compute(r_img.normalized)
+        rel_r = compute_terrain_reliability(r_img.normalized, pc_r.max_moment)
         c_i1, c_i2 = st.columns(2)
         c_i1.image(pc_r.max_moment, caption="Phase Congruency Max Moment (Crater Rims)", use_container_width=True)
         c_i2.image(rel_r, caption="Terrain Reliability Map (Texture & Shadow Filter)", use_container_width=True)
@@ -247,7 +306,7 @@ if "reg_result" in st.session_state:
     with tabs[7]:
         st.write("**Stage 8: High-Fidelity Warping & Resampling**")
         st.write("Source image warped into the reference coordinate frame using bicubic spline interpolation.")
-        st.image(res.warped_image, caption=f"Registered Source Image (Transformed into Reference Frame)", use_container_width=True)
+        st.image(res.warped_image, caption="Registered Source Image (Transformed into Reference Frame)", use_container_width=True)
 
     with tabs[8]:
         st.write("**Stage 9: Cartographic Quality Inspection (Checkerboard & Difference)**")

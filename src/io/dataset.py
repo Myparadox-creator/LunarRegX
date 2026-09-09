@@ -46,6 +46,9 @@ def load_lunar_image(
     if not path.exists():
         raise FileNotFoundError(f"Image file not found: {path}")
 
+    if path.stat().st_size == 0:
+        raise ValueError(f"Image file is empty (0 bytes): {path}")
+
     suffix = path.suffix.lower()
     raw = None
 
@@ -59,19 +62,32 @@ def load_lunar_image(
     else:
         raw_read = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
         if raw_read is None:
-            pil_img = Image.open(str(path))
-            raw = np.array(pil_img)
+            try:
+                pil_img = Image.open(str(path))
+                raw = np.array(pil_img)
+            except Exception as e:
+                raise ValueError(f"Failed to decode image from {path}: {str(e)}")
         else:
             raw = raw_read
 
-    if raw is None:
-        raise ValueError(f"Failed to decode image from {path}")
+    if raw is None or raw.size == 0:
+        raise ValueError(f"Failed to decode image from {path} (empty or corrupt array)")
+
+    if raw.ndim < 2:
+        raise ValueError(f"Image has insufficient dimensions {raw.shape} (minimum 2D required)")
+
+    if raw.shape[0] < 8 or raw.shape[1] < 8:
+        raise ValueError(f"Image resolution {raw.shape[1]}x{raw.shape[0]} is too small (minimum 8x8 required)")
 
     if raw.ndim == 3:
         if raw.shape[2] == 4:
             raw = raw[:, :, :3]
         if raw.shape[2] == 3:
             raw = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY if raw.dtype == np.uint8 else cv2.COLOR_RGB2GRAY)
+        elif raw.shape[2] == 1:
+            raw = raw.squeeze(2)
+        else:
+            raw = raw[:, :, 0]
 
     mask = np.ones(raw.shape, dtype=bool)
     if np.isnan(raw).any():
