@@ -1,0 +1,23 @@
+{
+  "total_candidates": 256,
+  "inlier_count": 50,
+  "inlier_ratio": 0.3048780487804878,
+  "rmse_x_px": 0.34585467529445474,
+  "rmse_y_px": 0.34585467529445474,
+  "rmse_total_px": 0.4891123724115609,
+  "median_residual_px": 0.2704704999923706,
+  "p95_residual_px": 0.7895974963903424,
+  "max_residual_px": 2.2540361881256104,
+  "grid_coverage_ratio": 0.35,
+  "convex_hull_ratio": 0.5922107696533203,
+  "density_variance": 0.69,
+  "checkpoint_rmse_px": 216.66690063476562,
+  "physical_error_m": 0.4891123724115609,
+  "model_name": "HOMOGRAPHY",
+  "condition_number": 33.898414611816406,
+  "runtime_sec": 4.610575914382935,
+  "status": "SUCCESS",
+  "diagnostics": [
+    "Optimal registration: High inlier confidence, sub-pixel residual, and uniform spatial coverage."
+  ]
+}

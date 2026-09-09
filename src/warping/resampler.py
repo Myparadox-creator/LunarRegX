@@ -80,3 +80,55 @@ class ImageWarper:
             warped = np.clip(warped, 0, 255).astype(np.uint8)
 
         return warped, valid_mask
+
+def export_geotiff(
+    filepath: str,
+    image_array: np.ndarray,
+    bounds_proj: Optional[Tuple[float, float, float, float]] = None,
+    crs_wkt: Optional[str] = None,
+    nodata: float = 0.0
+) -> str:
+    """
+    Export registered image as authentic GeoTIFF preserving Lunar CRS and affine transform.
+    """
+    from pathlib import Path
+    import rasterio
+    from rasterio.transform import from_bounds
+
+    p = Path(filepath)
+    p.parent.mkdir(parents=True, exist_ok=True)
+
+    h, w = image_array.shape[:2]
+    dtype = image_array.dtype
+
+    if bounds_proj is not None:
+        min_x, min_y, max_x, max_y = bounds_proj
+        transform = from_bounds(min_x, min_y, max_x, max_y, w, h)
+    else:
+        # Standard local metric pixel scale transform
+        from affine import Affine
+        transform = Affine.translation(0, 0) * Affine.scale(1.0, -1.0)
+
+    count = 1 if image_array.ndim == 2 else image_array.shape[2]
+
+    meta = {
+        "driver": "GTiff",
+        "height": h,
+        "width": w,
+        "count": count,
+        "dtype": str(dtype),
+        "transform": transform,
+        "nodata": nodata
+    }
+    if crs_wkt:
+        meta["crs"] = rasterio.crs.CRS.from_wkt(crs_wkt)
+
+    with rasterio.open(str(p), "w", **meta) as dst:
+        if count == 1:
+            dst.write(image_array, 1)
+        else:
+            for b in range(count):
+                dst.write(image_array[:, :, b], b + 1)
+
+    return str(p)
+

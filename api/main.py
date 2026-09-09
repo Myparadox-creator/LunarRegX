@@ -80,6 +80,41 @@ def list_benchmarks():
         ]
     }
 
+@app.post("/gis/pre-register", summary="Pre-Analyze GIS Footprint & Overlap Before Matching")
+async def gis_pre_register(
+    source_file: UploadFile = File(..., description="Source / Moving lunar image (TIFF, PNG, JPEG)"),
+    reference_file: UploadFile = File(..., description="Reference / Fixed lunar image (TIFF, PNG, JPEG)"),
+    sensor: Optional[str] = Form("ohrc", description="Sensor profile key: ohrc, tmc2, iirs, lroc_nac, lroc_wac")
+):
+    """
+    Computes Selenographic lunar footprints, spatial overlap percentage,
+    scale ratio, and solar geometry delta between Source and Reference images.
+    """
+    from src.gis.pre_registration import GISPreRegistrationAnalyzer
+    cfg_path = ROOT_DIR / "configs" / f"{sensor}.yaml"
+    gsd_val = 1.0
+    if cfg_path.exists():
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cdata = yaml.safe_load(f)
+            gsd_val = float(cdata.get("gsd", 1.0))
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        s_path = tmp_path / source_file.filename
+        r_path = tmp_path / reference_file.filename
+        s_path.write_bytes(await source_file.read())
+        r_path.write_bytes(await reference_file.read())
+
+        try:
+            src_lunar = load_lunar_image(s_path, gsd_override=gsd_val)
+            ref_lunar = load_lunar_image(r_path, gsd_override=gsd_val)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to decode lunar images: {str(e)}")
+
+        analyzer = GISPreRegistrationAnalyzer()
+        res = analyzer.analyze(src_lunar, ref_lunar)
+        return res.to_dict()
+
 @app.post("/register", summary="Register Source Image against Reference Image")
 async def register_images(
     source_file: UploadFile = File(..., description="Source / Moving lunar image (TIFF, PNG, JPEG)"),

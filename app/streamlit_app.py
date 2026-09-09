@@ -1,18 +1,15 @@
 """
-Streamlit Web Dashboard for Robust Multi-Modal Lunar Image Registration.
+Streamlit Web Dashboard for Robust GIS-Assisted Multi-Modal Lunar Image Registration.
 Features:
-- Live Image Upload & Challenge Benchmark Selector
-- Sensor Selection (OHRC, TMC-2, IIRS, LROC NAC, LROC WAC)
-- Multi-Engine Algorithm Selector (SIFT, AKAZE, Phase-Structural Hybrid, Learned CNN)
-- SIH Judge Demonstration Mode (10-Stage Guided Walkthrough)
-- Quantitative Metrics Dashboard (Pixel & Physical Meter Error, Spatial Coverage, Residuals)
-- Visual Overlay Comparison (Side-by-side, Checkerboard slider, Difference Heatmap, Subpixel Vectors)
-- Artifact Export (Registered GeoTIFF/PNG, Control Points CSV with float coords, Metrics JSON)
+- GIS Selenographic Footprint & Overlap Analysis (IAU 2000 Lunar Datum)
+- Sensor-Specific Multimodal Encoders (OHRC, TMC-2, IIRS)
+- Multi-Engine Algorithm Selector (Proposed Phase-Structural, LoFTR, RIFT2, SIFT, AKAZE, Learned CNN)
+- SIH Judge Demonstration Mode (11-Stage Comprehensive Walkthrough)
+- Multi-Artifact Export: GeoTIFF, CSV Control Points, GeoJSON, and Metrics JSON
 """
 import sys
 from pathlib import Path
 
-# Ensure project root is on sys.path regardless of execution directory
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -28,9 +25,10 @@ from PIL import Image
 from src.io.dataset import LunarImage, load_lunar_image
 from src.io.metadata import SensorMetadata
 from src.pipeline import LunarRegistrationPipeline, RegistrationPipelineConfig
+from src.gis.pre_registration import GISPreRegistrationAnalyzer
 
 st.set_page_config(
-    page_title="LunarReg | Robust Lunar Image Registration",
+    page_title="LunarRegX | GIS-Assisted Lunar Image Registration",
     page_icon="🌕",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -48,8 +46,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🌕 Robust Multi-Modal Lunar Image Registration")
-st.caption("SIH Research Prototype | Designed for Chandrayaan-2 (OHRC, TMC-2, IIRS) ↔ Lunar Reference (LROC NAC/WAC)")
+st.title("🌕 Robust GIS-Assisted Multi-Modal Lunar Image Registration")
+st.caption("SIH 2026 Prototype (Problem ID 26166) | Chandrayaan-2 (OHRC, TMC-2, IIRS) ↔ Lunar Reference (LROC NAC/WAC)")
 
 # Sidebar Controls
 st.sidebar.header("⚙️ System Configuration")
@@ -66,7 +64,13 @@ elif st.session_state["current_mode"] != mode:
 # Sensor Profiles
 sensor_choice = st.sidebar.selectbox(
     "Target Sensor Profile",
-    ["Chandrayaan-2 OHRC (0.25 m/px)", "Chandrayaan-2 TMC-2 (5.0 m/px)", "Chandrayaan-2 IIRS (80 m/px)", "LRO LROC-NAC (0.50 m/px)", "LRO LROC-WAC (100 m/px)"]
+    [
+        "Chandrayaan-2 OHRC (0.25 m/px)",
+        "Chandrayaan-2 TMC-2 (5.0 m/px)",
+        "Chandrayaan-2 IIRS (80 m/px)",
+        "LRO LROC-NAC (0.50 m/px)",
+        "LRO LROC-WAC (100 m/px)"
+    ]
 )
 
 gsd_map = {
@@ -81,18 +85,38 @@ selected_gsd = gsd_map[sensor_choice]
 # Matcher Configuration
 st.sidebar.subheader("Algorithmic Engine")
 feature_method = st.sidebar.selectbox(
-    "Feature Matching Engine",
-    ["PHASE_STRUCTURAL (Proposed)", "SIFT (Baseline 1)", "AKAZE (Baseline 2)", "LEARNED (Lightweight CNN)"],
+    "Correspondence Engine",
+    [
+        "PHASE_STRUCTURAL (Proposed Physics-Based)",
+        "LOFTR (Deep Transformer)",
+        "RIFT2 (Structural MIM)",
+        "SIFT (Baseline 1)",
+        "AKAZE (Baseline 2)",
+        "LEARNED (Lightweight CNN)"
+    ],
     index=0
 )
-engine_key = "PHASE_STRUCTURAL" if "PHASE_STRUCTURAL" in feature_method else ("SIFT" if "SIFT" in feature_method else ("AKAZE" if "AKAZE" in feature_method else "LEARNED"))
+
+if "PHASE_STRUCTURAL" in feature_method:
+    engine_key = "PHASE_STRUCTURAL"
+elif "LOFTR" in feature_method:
+    engine_key = "LOFTR"
+elif "RIFT2" in feature_method:
+    engine_key = "RIFT2"
+elif "SIFT" in feature_method:
+    engine_key = "SIFT"
+elif "AKAZE" in feature_method:
+    engine_key = "AKAZE"
+else:
+    engine_key = "LEARNED"
 
 model_choice = st.sidebar.selectbox("Transformation Model", ["AUTO (Stability-Guided)", "SIMILARITY (4-DOF)", "AFFINE (6-DOF)", "HOMOGRAPHY (8-DOF)"], index=0)
 model_key = "AUTO" if "AUTO" in model_choice else ("SIMILARITY" if "SIMILARITY" in model_choice else ("AFFINE" if "AFFINE" in model_choice else "HOMOGRAPHY"))
 
+use_gis = st.sidebar.checkbox("GIS Pre-Registration & Footprint Check", value=True)
+use_multimodal = st.sidebar.checkbox("Sensor-Aware Multimodal Processing", value=True)
 use_subpixel = st.sidebar.checkbox("Sub-Pixel Refinement (2D Parabolic Peak)", value=True)
 use_anms = st.sidebar.checkbox("Spatially Uniform ANMS Grid", value=True)
-use_clahe = st.sidebar.checkbox("Illumination CLAHE Preprocessing", value=True)
 
 # Data Ingestion
 samples_dir = ROOT_DIR / "data" / "samples"
@@ -123,8 +147,15 @@ if mode == "🏆 SIH Judge Demonstration Mode":
     src_path, ref_path = pair_files.get(scenario, (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"))
     if src_path.exists() and ref_path.exists():
         try:
+            # Assign appropriate solar geometry metadata based on scenario
+            s_az = 315.0 if "180" in scenario else 135.0
+            r_az = 135.0
             src_lunar = load_lunar_image(src_path, gsd_override=selected_gsd)
             ref_lunar = load_lunar_image(ref_path, gsd_override=selected_gsd)
+            src_lunar.metadata.solar_azimuth_deg = s_az
+            src_lunar.metadata.solar_elevation_deg = 35.0
+            ref_lunar.metadata.solar_azimuth_deg = r_az
+            ref_lunar.metadata.solar_elevation_deg = 40.0
         except Exception as e:
             st.error(f"❌ Failed to load benchmark image: {e}")
     else:
@@ -162,19 +193,19 @@ if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lun
         with c_g1:
             st.markdown("""
             ### 🛰️ Supported Lunar Sensors
-            * **Chandrayaan-2 OHRC:** Ultra-high resolution ($0.25\\text{ m/px}$)
-            * **Chandrayaan-2 TMC-2:** Stereo elevation mapping ($5.0\\text{ m/px}$)
-            * **Chandrayaan-2 IIRS:** Hyperspectral mineralogy ($80\\text{ m/px}$)
-            * **LRO LROC-NAC:** Narrow Angle Camera ($0.50\\text{ m/px}$)
-            * **LRO LROC-WAC:** Wide Angle Camera ($100\\text{ m/px}$)
+            * **Chandrayaan-2 OHRC:** Ultra-high resolution ($0.25\text{ m/px}$)
+            * **Chandrayaan-2 TMC-2:** Stereo elevation mapping ($5.0\text{ m/px}$)
+            * **Chandrayaan-2 IIRS:** Hyperspectral mineralogy ($80\text{ m/px}$)
+            * **LRO LROC-NAC:** Narrow Angle Camera ($0.50\text{ m/px}$)
+            * **LRO LROC-WAC:** Wide Angle Camera ($100\text{ m/px}$)
             """)
         with c_g2:
             st.markdown("""
             ### 📐 Recommended Input Specifications
-            * **File Formats:** GeoTIFF, TIFF, PNG, JPEG
+            * **File Formats:** GeoTIFF, TIFF, PNG, JPEG, NPY
             * **Radiometric Depths:** 8-bit, 12-bit raw, 16-bit, 32-bit float
-            * **Dynamic Range:** Automatic percentile ($1\\%$ to $99\\%$) stretch and nodata masking
-            * **Illumination Resilience:** Fourier Phase Congruency resolves $180^\\circ$ shadow inversions
+            * **GIS Coordinate System:** IAU-2000 Lunar Datum ($R = 1737.4\text{ km}$)
+            * **Illumination Resilience:** Fourier Phase Congruency resolves $180^\circ$ shadow inversions
             """)
 
 # Registration Execution Button & Input Previews
@@ -186,12 +217,13 @@ if src_lunar is not None and ref_lunar is not None:
         st.image(ref_lunar.display_8bit, caption=f"Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
 
     if st.button("🚀 EXECUTE REGISTRATION PIPELINE", type="primary", use_container_width=True):
-        with st.spinner("Executing coarse-to-fine hybrid registration pipeline..."):
+        with st.spinner("Executing GIS-assisted multi-modal registration pipeline..."):
             try:
                 cfg = RegistrationPipelineConfig(
                     feature_method=engine_key,
                     preferred_model=model_key,
-                    use_clahe=use_clahe,
+                    use_gis_pre_registration=use_gis,
+                    use_multimodal_encoder=use_multimodal,
                     use_spatial_anms=use_anms,
                     use_subpixel=use_subpixel
                 )
@@ -214,6 +246,7 @@ if "reg_result" in st.session_state:
     m = res.metrics
     s_img = res.source_image
     r_img = res.reference_image
+    gis_info = res.spatial_pre_reg
 
     st.markdown("---")
     c_head1, c_head2 = st.columns([5, 1])
@@ -241,32 +274,55 @@ if "reg_result" in st.session_state:
     c5.metric("Spatial Coverage", f"{m.grid_coverage_ratio:.1%}")
     c6.metric("Runtime", f"{m.runtime_sec:.2f} s")
 
-    # SIH Judge 10-Step Tour Tabs
+    # SIH Judge 11-Step Tour Tabs
     st.markdown("---")
-    st.subheader("🏆 SIH Judge Demonstration Walkthrough (10 Verification Stages)")
+    st.subheader("🏆 SIH Judge Demonstration Walkthrough (11 Verification Stages)")
 
     tab_titles = [
-        "1. Raw Inputs",
-        "2. Illumination & Phase",
-        "3. Correspondences",
-        "4. Outlier Rejection",
-        "5. Spatial ANMS",
-        "6. Sub-Pixel Refinement",
-        "7. Model Estimation",
-        "8. Registered Warping",
-        "9. Checkerboard & Diff",
-        "10. Export Artifacts"
+        "1. GIS & Footprint",
+        "2. Sensor Encoding",
+        "3. Illumination Phase",
+        "4. Correspondences",
+        "5. Outlier Rejection",
+        "6. Spatial ANMS",
+        "7. Sub-Pixel Refinement",
+        "8. Model Estimation",
+        "9. Registered Warping",
+        "10. Quality Inspection",
+        "11. Export Artifacts"
     ]
     tabs = st.tabs(tab_titles)
 
     with tabs[0]:
-        st.write("**Stage 1: Raw Radiometric Inputs and Metadata**")
-        st.write(f"Source Image: {s_img.width}x{s_img.height} | Dynamic Range: {s_img.metadata.bit_depth}-bit | GSD: {s_img.metadata.gsd} m/px")
-        st.write(f"Reference Image: {r_img.width}x{r_img.height} | Reference GSD: {r_img.metadata.gsd} m/px")
-        st.image([s_img.display_8bit, r_img.display_8bit], caption=["Source Image", "Reference Image"], width=400)
+        st.write("**Stage 1: GIS Footprint & Selenographic Geometry**")
+        if gis_info:
+            c_g1, c_g2, c_g3 = st.columns(3)
+            c_g1.metric("Spatial Overlap", f"{gis_info.overlap_percentage:.1f}%", "Overlap Detected" if gis_info.overlap_detected else "No Overlap")
+            c_g2.metric("GSD Scale Ratio", f"{gis_info.scale_ratio:.2f}x", f"{gis_info.source_gsd}m vs {gis_info.reference_gsd}m")
+            c_g3.metric("Sun Azimuth Delta", f"{gis_info.sun_geometry['azimuth_delta_deg']:.1f}°" if gis_info.sun_geometry['azimuth_delta_deg'] is not None else "N/A", gis_info.sun_geometry['illumination_status'])
+
+            st.markdown(f"""
+            * **Lunar Datum:** IAU-2000 Mean Sphere ($R = 1,737,400.0\text{ m}$)
+            * **Source Selenographic Footprint:** Lon bounds `[{gis_info.source_footprint['bounds_geo'][0]:.4f}, {gis_info.source_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.source_footprint['bounds_geo'][1]:.4f}, {gis_info.source_footprint['bounds_geo'][3]:.4f}]`
+            * **Reference Selenographic Footprint:** Lon bounds `[{gis_info.reference_footprint['bounds_geo'][0]:.4f}, {gis_info.reference_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.reference_footprint['bounds_geo'][1]:.4f}, {gis_info.reference_footprint['bounds_geo'][3]:.4f}]`
+            * **Intersection Area:** {gis_info.common_roi.get('intersection_area_km2', 0.0)} km²
+            * **Metadata Reliability:** Sun: `{gis_info.metadata_status['sun_geometry']}` | CRS: `{gis_info.metadata_status['spatial_crs']}`
+            """)
+        else:
+            st.info("GIS Pre-registration disabled or metadata not provided.")
 
     with tabs[1]:
-        st.write("**Stage 2: Illumination-Robust Phase Congruency & Reliability**")
+        st.write("**Stage 2: Sensor-Aware Multimodal Processing**")
+        st.write("Dispatches specialized image representations acknowledging distinct sensor modalities (OHRC high-resolution panchromatic, TMC-2 stereo bandpass, or IIRS hyperspectral continuum PCA).")
+        from src.multimodal.sensor_encoder import encode_sensor_image
+        s_rep = encode_sensor_image(s_img)
+        r_rep = encode_sensor_image(r_img)
+        c_m1, c_m2 = st.columns(2)
+        c_m1.image(s_rep.structural_map, caption=f"Source Structural Map ({s_rep.sensor_type})", use_container_width=True)
+        c_m2.image(r_rep.structural_map, caption=f"Reference Structural Map ({r_rep.sensor_type})", use_container_width=True)
+
+    with tabs[2]:
+        st.write("**Stage 3: Illumination-Robust Phase Congruency & Reliability**")
         st.write("Convolving with 2D Log-Gabor filter bank (3 scales, 6 orientations) extracts illumination-invariant maximum moment maps ($M$) and shadow-reliability masks, making detection immune to sun angle flips.")
         from src.illumination.phase_congruency import LogGaborPhaseCongruency
         from src.illumination.reliability import compute_terrain_reliability
@@ -277,54 +333,55 @@ if "reg_result" in st.session_state:
         c_i1.image(pc_r.max_moment, caption="Phase Congruency Max Moment (Crater Rims)", use_container_width=True)
         c_i2.image(rel_r, caption="Terrain Reliability Map (Texture & Shadow Filter)", use_container_width=True)
 
-    with tabs[2]:
-        st.write("**Stage 3: Detected Candidate Correspondences**")
-        st.write(f"Detected {m.total_candidates} candidate match vectors using mutual nearest-neighbor matching and Lowe's ratio test.")
+    with tabs[3]:
+        st.write("**Stage 4: Candidate Correspondences**")
+        st.write(f"Identified {m.total_candidates} candidate matches across the scene using {feature_method}.")
         st.image(res.vis_matches, caption="Candidate Matches (Green: Inliers | Red: Filtered Outliers)", use_container_width=True)
 
-    with tabs[3]:
-        st.write("**Stage 4: Robust Outlier Rejection (RANSAC / MAGSAC++)**")
+    with tabs[4]:
+        st.write("**Stage 5: Robust Outlier Rejection (RANSAC / MAGSAC++)**")
         st.write(f"Filtered {len(res.estimation_result.outliers)} false correspondences ({1.0 - m.inlier_ratio:.1%} outlier rate), isolating {m.inlier_count} geometric inliers.")
         st.metric("Outliers Rejected", len(res.estimation_result.outliers))
 
-    with tabs[4]:
-        st.write("**Stage 5: Spatially Uniform Control-Point Optimization (ANMS)**")
+    with tabs[5]:
+        st.write("**Stage 6: Spatially Uniform Control-Point Optimization (ANMS)**")
         st.write(f"Grid-based Adaptive Non-Maximal Suppression (ANMS) spreads control points uniformly across the reference frame, achieving {m.grid_coverage_ratio:.1%} coverage and avoiding single-crater clustering.")
         st.image(res.vis_spatial, caption="Spatial Uniformity: Grid Cell Coverage (Green: Occupied | Yellow: Control Points)", use_container_width=True)
 
-    with tabs[5]:
-        st.write("**Stage 6: Sub-Pixel Correspondence Refinement**")
+    with tabs[6]:
+        st.write("**Stage 7: Sub-Pixel Correspondence Refinement**")
         st.write("Local Normalized Cross-Correlation (NCC) with 2D continuous parabolic surface interpolation refines integer pixel coordinates to sub-pixel floating-point positions.")
         st.image(res.vis_subpixel, caption="Sub-Pixel Correction Vector Field (quiver plot scaled 10x)", use_container_width=True)
 
-    with tabs[6]:
-        st.write("**Stage 7: Geometric Model Estimation & Stability**")
+    with tabs[7]:
+        st.write("**Stage 8: Geometric Model Estimation & Stability**")
         st.write(f"Model Selected: **{m.model_name}** | Reason: {res.estimation_result.model_selection_reason}")
         st.write(f"Matrix Condition Number: **{m.condition_number:.1f}** (Threshold < 2000 for stable homography)")
         st.write(f"Median Residual: **{m.median_residual_px:.3f} px** | 95th Percentile: **{m.p95_residual_px:.3f} px**")
 
-    with tabs[7]:
-        st.write("**Stage 8: High-Fidelity Warping & Resampling**")
+    with tabs[8]:
+        st.write("**Stage 9: High-Fidelity Warping & Resampling**")
         st.write("Source image warped into the reference coordinate frame using bicubic spline interpolation.")
         st.image(res.warped_image, caption="Registered Source Image (Transformed into Reference Frame)", use_container_width=True)
 
-    with tabs[8]:
-        st.write("**Stage 9: Cartographic Quality Inspection (Checkerboard & Difference)**")
+    with tabs[9]:
+        st.write("**Stage 10: Cartographic Quality Inspection (Checkerboard & Difference)**")
         st.write("Inspect continuous crater rim alignment across checkerboard boundaries to visually verify sub-pixel seam continuity.")
         st.image(res.vis_checkerboard, caption="Checkerboard Verification: Seam alignment between Registered Source & Reference", use_container_width=True)
         st.image(res.vis_diff, caption="Absolute Difference Heatmap (Dark = Perfect Alignment | Bright = Residuals)", use_container_width=True)
 
-    with tabs[9]:
-        st.write("**Stage 10: Exportable SIH Artifacts**")
-        st.write("Download complete registration artifacts including registered TIFF, control point CSV, and JSON metrics.")
+    with tabs[10]:
+        st.write("**Stage 11: Exportable SIH Artifacts**")
+        st.write("Download complete scientific registration deliverables: GeoTIFF, CSV control points, GeoJSON, and Metrics JSON.")
         
-        # Download Buttons
         df = res.export_control_points_dataframe()
         csv_bytes = df.to_csv(index=False).encode('utf-8')
+        geojson_bytes = json.dumps(res.export_control_points_geojson(), indent=2).encode('utf-8')
         json_bytes = res.metrics.to_json().encode('utf-8')
 
-        c_d1, c_d2 = st.columns(2)
-        c_d1.download_button("📥 Download Control Points (CSV)", csv_bytes, file_name="lunar_control_points.csv", mime="text/csv")
-        c_d2.download_button("📥 Download Registration Metrics (JSON)", json_bytes, file_name="registration_metrics.json", mime="application/json")
+        c_d1, c_d2, c_d3 = st.columns(3)
+        c_d1.download_button("📥 Control Points (CSV)", csv_bytes, file_name="lunar_control_points.csv", mime="text/csv")
+        c_d2.download_button("📥 Control Points (GeoJSON)", geojson_bytes, file_name="lunar_control_points.geojson", mime="application/geo+json")
+        c_d3.download_button("📥 Registration Metrics (JSON)", json_bytes, file_name="registration_metrics.json", mime="application/json")
 
         st.dataframe(df.head(10), use_container_width=True)

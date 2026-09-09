@@ -1,21 +1,31 @@
-Scenario,Method,Candidates,Inliers,Inlier_Ratio,RMSE_px,Coverage,Runtime_s,Status
-Pair 1: Low Illumination Delta,Baseline 1 (SIFT + RANSAC),737,564,95.6%,0.9,100.0%,0.96,SUCCESS
-Pair 1: Low Illumination Delta,Baseline 2 (AKAZE),1359,1070,98.3%,0.855,88.0%,0.99,SUCCESS
-Pair 1: Low Illumination Delta,Baseline 3 (Learned CNN),87,27,38.6%,1.014,25.0%,1.26,WARNING
-Pair 1: Low Illumination Delta,Proposed (Phase-Structural Hybrid),315,156,100.0%,0.512,69.0%,2.76,SUCCESS
-Pair 2: 180° Shadow Reversal,Baseline 1 (SIFT + RANSAC),29,4,16.7%,0.598,4.0%,0.99,FAILURE
-Pair 2: 180° Shadow Reversal,Baseline 2 (AKAZE),27,4,18.2%,1.08,4.0%,0.98,FAILURE
-Pair 2: 180° Shadow Reversal,Baseline 3 (Learned CNN),76,4,6.6%,0.402,4.0%,1.27,FAILURE
-Pair 2: 180° Shadow Reversal,Proposed (Phase-Structural Hybrid),269,130,90.9%,1.312,61.0%,2.79,SUCCESS
-Pair 3: Multi-Scale (OHRC vs LROC),Baseline 1 (SIFT + RANSAC),558,431,96.4%,0.321,61.0%,1.05,WARNING
-Pair 3: Multi-Scale (OHRC vs LROC),Baseline 2 (AKAZE),586,459,97.9%,0.52,45.0%,1.03,WARNING
-Pair 3: Multi-Scale (OHRC vs LROC),Baseline 3 (Learned CNN),101,9,11.1%,0.436,9.0%,1.27,WARNING
-Pair 3: Multi-Scale (OHRC vs LROC),Proposed (Phase-Structural Hybrid),90,54,90.0%,1.354,28.0%,2.62,WARNING
-Pair 4: Viewpoint / Affine Shear,Baseline 1 (SIFT + RANSAC),962,764,99.2%,0.335,92.0%,0.96,SUCCESS
-Pair 4: Viewpoint / Affine Shear,Baseline 2 (AKAZE),1465,1168,99.7%,0.502,84.0%,0.99,SUCCESS
-Pair 4: Viewpoint / Affine Shear,Baseline 3 (Learned CNN),291,185,79.4%,0.34,76.0%,1.24,SUCCESS
-Pair 4: Viewpoint / Affine Shear,Proposed (Phase-Structural Hybrid),339,147,96.7%,0.779,64.0%,2.75,SUCCESS
-Pair 5: Polar Crater Deep Shadow,Baseline 1 (SIFT + RANSAC),49,4,10.0%,0.569,4.0%,0.97,FAILURE
-Pair 5: Polar Crater Deep Shadow,Baseline 2 (AKAZE),27,4,18.2%,0.243,4.0%,0.98,FAILURE
-Pair 5: Polar Crater Deep Shadow,Baseline 3 (Learned CNN),89,4,5.6%,0.709,4.0%,1.27,FAILURE
-Pair 5: Polar Crater Deep Shadow,Proposed (Phase-Structural Hybrid),8,4,50.0%,0.751,3.0%,2.94,FAILURE
+scenario,method,engine,total_candidates,inlier_count,inlier_ratio,rmse_pixels,physical_error_m,grid_coverage,runtime_sec,model_selected,status
+Pair 1: Low Illumination Delta,Baseline 1 (SIFT + RANSAC),SIFT,675,510,0.944,0.936,0.94,0.99,2.15,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 2 (AKAZE),AKAZE,1168,902,0.965,0.91,0.91,0.85,2.04,AFFINE,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 3 (Learned CNN),LEARNED,101,33,0.407,0.514,0.51,0.27,2.41,HOMOGRAPHY,WARNING
+Pair 1: Low Illumination Delta,Baseline 4 (RIFT2),RIFT2,306,218,0.89,1.412,1.41,0.69,6.51,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 5 (LoFTR Deep Matcher),LOFTR,238,49,0.257,0.582,0.58,0.34,4.68,HOMOGRAPHY,WARNING
+Pair 1: Low Illumination Delta,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,306,152,1.0,0.619,0.62,0.68,6.57,HOMOGRAPHY,SUCCESS
+Pair 2: 180° Shadow Reversal,Baseline 1 (SIFT + RANSAC),SIFT,32,4,0.154,0.511,0.51,0.03,2.09,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 2 (AKAZE),AKAZE,17,3,0.214,0.0,0.0,0.03,1.93,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 3 (Learned CNN),LEARNED,57,4,0.087,0.741,0.74,0.04,2.34,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 4 (RIFT2),RIFT2,257,165,0.801,1.551,1.55,0.57,6.44,HOMOGRAPHY,SUCCESS
+Pair 2: 180° Shadow Reversal,Baseline 5 (LoFTR Deep Matcher),LOFTR,194,4,0.026,0.677,0.68,0.04,4.6,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,257,127,0.969,0.983,0.98,0.57,6.86,HOMOGRAPHY,SUCCESS
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 1 (SIFT + RANSAC),SIFT,523,404,0.964,0.441,0.44,0.56,2.09,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 2 (AKAZE),AKAZE,565,449,0.993,0.583,0.58,0.45,2.03,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 3 (Learned CNN),LEARNED,43,4,0.114,0.464,0.46,0.04,2.33,AFFINE,FAILURE
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 4 (RIFT2),RIFT2,91,53,0.726,1.547,1.55,0.26,6.49,SIMILARITY,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 5 (LoFTR Deep Matcher),LOFTR,195,23,0.147,0.888,0.89,0.18,4.64,SIMILARITY,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,91,48,0.787,1.483,1.48,0.27,6.44,SIMILARITY,WARNING
+Pair 4: Viewpoint / Affine Shear,Baseline 1 (SIFT + RANSAC),SIFT,854,674,0.985,0.381,0.38,0.94,2.03,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 2 (AKAZE),AKAZE,1262,1001,0.991,0.56,0.56,0.83,2.04,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 3 (Learned CNN),LEARNED,233,153,0.818,0.294,0.29,0.73,2.43,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 4 (RIFT2),RIFT2,342,235,0.858,1.43,1.43,0.63,6.79,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 5 (LoFTR Deep Matcher),LOFTR,284,128,0.561,0.341,0.34,0.61,4.74,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,342,155,0.957,0.92,0.92,0.63,6.77,HOMOGRAPHY,SUCCESS
+Pair 5: Polar Crater Deep Shadow,Baseline 1 (SIFT + RANSAC),SIFT,37,4,0.133,0.0,0.0,0.03,2.08,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 2 (AKAZE),AKAZE,28,4,0.174,0.68,0.68,0.04,1.97,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 3 (Learned CNN),LEARNED,66,4,0.075,1.15,1.15,0.04,2.4,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 4 (RIFT2),RIFT2,10,7,0.7,1.349,1.35,0.07,6.52,SIMILARITY,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 5 (LoFTR Deep Matcher),LOFTR,201,6,0.037,0.227,0.23,0.05,4.69,SIMILARITY,FAILURE
+Pair 5: Polar Crater Deep Shadow,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,10,9,0.9,1.363,1.36,0.09,6.51,AFFINE,WARNING

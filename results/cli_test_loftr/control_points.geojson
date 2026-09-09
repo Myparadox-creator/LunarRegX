@@ -1,0 +1,961 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          68.0,
+          160.0
+        ]
+      },
+      "properties": {
+        "id": 1,
+        "source_x": 79.0,
+        "source_y": 158.0,
+        "subpixel_dx": -0.00011271398398093879,
+        "subpixel_dy": -0.003385823452845216,
+        "confidence": 0.9361701718063166,
+        "residual_px": 0.11259899288415909
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          64.0,
+          395.0
+        ]
+      },
+      "properties": {
+        "id": 2,
+        "source_x": 83.0,
+        "source_y": 393.0,
+        "subpixel_dx": -0.08953680843114853,
+        "subpixel_dy": 0.05565980449318886,
+        "confidence": 0.9257384297722022,
+        "residual_px": 0.04032278060913086
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.0,
+          385.0
+        ]
+      },
+      "properties": {
+        "id": 37,
+        "source_x": 99.0,
+        "source_y": 382.0,
+        "subpixel_dx": 0.07574960589408875,
+        "subpixel_dy": -0.2617013454437256,
+        "confidence": 0.8723846557901992,
+        "residual_px": 0.27878817915916443
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          293.0,
+          140.0
+        ]
+      },
+      "properties": {
+        "id": 93,
+        "source_x": 303.0,
+        "source_y": 130.0,
+        "subpixel_dx": -0.2424728274345398,
+        "subpixel_dy": -0.06864362955093384,
+        "confidence": 0.9138970607110419,
+        "residual_px": 0.0849185660481453
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          226.0,
+          361.0
+        ]
+      },
+      "properties": {
+        "id": 4,
+        "source_x": 244.0,
+        "source_y": 353.0,
+        "subpixel_dx": 0.012259050272405148,
+        "subpixel_dy": -0.10269854217767715,
+        "confidence": 0.9413560530117132,
+        "residual_px": 0.2580792307853699
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          236.0,
+          372.0
+        ]
+      },
+      "properties": {
+        "id": 158,
+        "source_x": 254.0,
+        "source_y": 364.0,
+        "subpixel_dx": -0.12058058381080627,
+        "subpixel_dy": -0.09903205186128616,
+        "confidence": 0.9216950427693105,
+        "residual_px": 0.18659885227680206
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          152.0,
+          78.0
+        ]
+      },
+      "properties": {
+        "id": 5,
+        "source_x": 160.0,
+        "source_y": 73.0,
+        "subpixel_dx": -0.03796197846531868,
+        "subpixel_dy": 0.02668674848973751,
+        "confidence": 0.9766545592899585,
+        "residual_px": 0.21556036174297333
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          354.0,
+          307.0
+        ]
+      },
+      "properties": {
+        "id": 111,
+        "source_x": 370.0,
+        "source_y": 295.0,
+        "subpixel_dx": 0.10421708226203918,
+        "subpixel_dy": 0.13932040333747864,
+        "confidence": 0.9039863252343265,
+        "residual_px": 0.1546463519334793
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          351.0,
+          187.0
+        ]
+      },
+      "properties": {
+        "id": 7,
+        "source_x": 363.0,
+        "source_y": 175.0,
+        "subpixel_dx": 0.03601107373833656,
+        "subpixel_dy": 0.0011497962987050414,
+        "confidence": 0.8636585974801487,
+        "residual_px": 0.15838976204395294
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          169.0,
+          187.0
+        ]
+      },
+      "properties": {
+        "id": 43,
+        "source_x": 181.0,
+        "source_y": 181.0,
+        "subpixel_dx": -0.04737770929932594,
+        "subpixel_dy": -0.13048262894153595,
+        "confidence": 0.9211624949019327,
+        "residual_px": 0.40160250663757324
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          187.0,
+          170.0
+        ]
+      },
+      "properties": {
+        "id": 8,
+        "source_x": 198.0,
+        "source_y": 164.0,
+        "subpixel_dx": -0.02131662145256996,
+        "subpixel_dy": 0.04467843845486641,
+        "confidence": 0.9162134239184437,
+        "residual_px": 0.23420116305351257
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          164.0,
+          202.0
+        ]
+      },
+      "properties": {
+        "id": 71,
+        "source_x": 177.0,
+        "source_y": 196.0,
+        "subpixel_dx": 0.9840874094516039,
+        "subpixel_dy": -0.7469671368598938,
+        "confidence": 0.900488825705257,
+        "residual_px": 0.328752338886261
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          184.0,
+          197.0
+        ]
+      },
+      "properties": {
+        "id": 165,
+        "source_x": 196.0,
+        "source_y": 191.0,
+        "subpixel_dx": -0.14545224606990814,
+        "subpixel_dy": 0.040362194180488586,
+        "confidence": 0.8414869123560809,
+        "residual_px": 0.06171875447034836
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.0,
+          153.0
+        ]
+      },
+      "properties": {
+        "id": 9,
+        "source_x": 78.0,
+        "source_y": 151.0,
+        "subpixel_dx": 0.054090920835733414,
+        "subpixel_dy": 0.015724340453743935,
+        "confidence": 0.947877142463625,
+        "residual_px": 0.2805613577365875
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          87.0,
+          144.0
+        ]
+      },
+      "properties": {
+        "id": 189,
+        "source_x": 97.0,
+        "source_y": 141.0,
+        "subpixel_dx": -0.15326601266860962,
+        "subpixel_dy": -0.9175867661833763,
+        "confidence": 0.9323780050570033,
+        "residual_px": 0.5051490068435669
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          71.0,
+          108.0
+        ]
+      },
+      "properties": {
+        "id": 203,
+        "source_x": 80.0,
+        "source_y": 106.0,
+        "subpixel_dx": -0.06346175819635391,
+        "subpixel_dy": -0.04133253172039986,
+        "confidence": 0.9227931067439367,
+        "residual_px": 0.11273252218961716
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          269.0,
+          443.0
+        ]
+      },
+      "properties": {
+        "id": 102,
+        "source_x": 289.0,
+        "source_y": 434.0,
+        "subpixel_dx": -0.37273165583610535,
+        "subpixel_dy": -0.1681259572505951,
+        "confidence": 0.894707097321862,
+        "residual_px": 0.49950718879699707
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          301.0,
+          449.0
+        ]
+      },
+      "properties": {
+        "id": 57,
+        "source_x": 322.0,
+        "source_y": 439.0,
+        "subpixel_dx": 0.2202027440071106,
+        "subpixel_dy": 0.3037681579589844,
+        "confidence": 0.8398598552908613,
+        "residual_px": 0.1414647251367569
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          282.0,
+          436.0
+        ]
+      },
+      "properties": {
+        "id": 221,
+        "source_x": 302.0,
+        "source_y": 427.0,
+        "subpixel_dx": -0.07217156141996384,
+        "subpixel_dy": 0.08006350696086884,
+        "confidence": 0.8230507361050838,
+        "residual_px": 0.7232159376144409
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          196.0,
+          389.0
+        ]
+      },
+      "properties": {
+        "id": 147,
+        "source_x": 215.0,
+        "source_y": 382.0,
+        "subpixel_dx": -0.15100766718387604,
+        "subpixel_dy": -0.17420677840709686,
+        "confidence": 0.88286020184465,
+        "residual_px": 0.4187740385532379
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          177.0,
+          370.0
+        ]
+      },
+      "properties": {
+        "id": 11,
+        "source_x": 195.0,
+        "source_y": 364.0,
+        "subpixel_dx": 0.13962768018245697,
+        "subpixel_dy": -0.09241949021816254,
+        "confidence": 0.8554376308042811,
+        "residual_px": 0.2674388885498047
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          88.0,
+          260.0
+        ]
+      },
+      "properties": {
+        "id": 13,
+        "source_x": 103.0,
+        "source_y": 257.0,
+        "subpixel_dx": 0.508417546749115,
+        "subpixel_dy": -0.0949220284819603,
+        "confidence": 0.8206846658460578,
+        "residual_px": 0.1846655309200287
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          21.0,
+          309.0
+        ]
+      },
+      "properties": {
+        "id": 191,
+        "source_x": 37.0,
+        "source_y": 307.0,
+        "subpixel_dx": -0.09376770257949829,
+        "subpixel_dy": -1.2635154128074646,
+        "confidence": 0.9062460688244299,
+        "residual_px": 0.3109131455421448
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          109.0,
+          436.0
+        ]
+      },
+      "properties": {
+        "id": 16,
+        "source_x": 130.0,
+        "source_y": 432.0,
+        "subpixel_dx": 0.1146315485239029,
+        "subpixel_dy": -0.049223579466342926,
+        "confidence": 0.9439152022637863,
+        "residual_px": 0.5443685054779053
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          123.0,
+          412.0
+        ]
+      },
+      "properties": {
+        "id": 173,
+        "source_x": 142.0,
+        "source_y": 408.0,
+        "subpixel_dx": -0.35848376154899597,
+        "subpixel_dy": 0.01463161688297987,
+        "confidence": 0.9002458345905431,
+        "residual_px": 0.2511489987373352
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0,
+          433.0
+        ]
+      },
+      "properties": {
+        "id": 178,
+        "source_x": 155.0,
+        "source_y": 430.0,
+        "subpixel_dx": -3.137406513094902,
+        "subpixel_dy": 1.1535988301038742,
+        "confidence": 0.8413776761459811,
+        "residual_px": 2.2540361881256104
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          163.0,
+          213.0
+        ]
+      },
+      "properties": {
+        "id": 187,
+        "source_x": 176.0,
+        "source_y": 208.0,
+        "subpixel_dx": 0.012329277582466602,
+        "subpixel_dy": 0.569800466299057,
+        "confidence": 0.8823478312421187,
+        "residual_px": 0.3333941400051117
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          205.0,
+          305.0
+        ]
+      },
+      "properties": {
+        "id": 26,
+        "source_x": 221.0,
+        "source_y": 298.0,
+        "subpixel_dx": 0.11867988854646683,
+        "subpixel_dy": -0.0036200308240950108,
+        "confidence": 0.9256472150471433,
+        "residual_px": 0.04789581149816513
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          410.0,
+          302.0
+        ]
+      },
+      "properties": {
+        "id": 25,
+        "source_x": 426.0,
+        "source_y": 288.0,
+        "subpixel_dx": 0.12535825371742249,
+        "subpixel_dy": 0.021184436976909637,
+        "confidence": 0.872744335161346,
+        "residual_px": 0.21234169602394104
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          455.0,
+          356.0
+        ]
+      },
+      "properties": {
+        "id": 59,
+        "source_x": 473.0,
+        "source_y": 340.0,
+        "subpixel_dx": 0.7092477381229401,
+        "subpixel_dy": -0.5553419291973114,
+        "confidence": 0.876636238997317,
+        "residual_px": 0.6772189140319824
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          378.0,
+          169.0
+        ]
+      },
+      "properties": {
+        "id": 116,
+        "source_x": 389.0,
+        "source_y": 156.0,
+        "subpixel_dx": 0.03607843071222305,
+        "subpixel_dy": 0.03425898402929306,
+        "confidence": 0.9315653318652174,
+        "residual_px": 0.2846076786518097
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          376.0,
+          155.0
+        ]
+      },
+      "properties": {
+        "id": 82,
+        "source_x": 387.0,
+        "source_y": 142.0,
+        "subpixel_dx": 0.23322127759456635,
+        "subpixel_dy": 0.06701190769672394,
+        "confidence": 0.896130823908227,
+        "residual_px": 0.0674179270863533
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          359.0,
+          278.0
+        ]
+      },
+      "properties": {
+        "id": 33,
+        "source_x": 374.0,
+        "source_y": 266.0,
+        "subpixel_dx": 0.021910173818469048,
+        "subpixel_dy": 0.1427416354417801,
+        "confidence": 0.8942637241289763,
+        "residual_px": 0.27092939615249634
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          170.0,
+          309.0
+        ]
+      },
+      "properties": {
+        "id": 35,
+        "source_x": 186.0,
+        "source_y": 303.0,
+        "subpixel_dx": -0.2416197508573532,
+        "subpixel_dy": -0.14345914125442505,
+        "confidence": 0.8279830587184163,
+        "residual_px": 0.2841211259365082
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          87.0,
+          218.0
+        ]
+      },
+      "properties": {
+        "id": 62,
+        "source_x": 100.0,
+        "source_y": 215.0,
+        "subpixel_dx": -0.49353912472724915,
+        "subpixel_dy": -0.1501087248325348,
+        "confidence": 0.9330083584213045,
+        "residual_px": 0.603655219078064
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          101.0,
+          252.0
+        ]
+      },
+      "properties": {
+        "id": 36,
+        "source_x": 115.0,
+        "source_y": 249.0,
+        "subpixel_dx": 0.06612008064985275,
+        "subpixel_dy": 0.037717487663030624,
+        "confidence": 0.8827770259671199,
+        "residual_px": 0.22595945000648499
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          69.0,
+          245.0
+        ]
+      },
+      "properties": {
+        "id": 45,
+        "source_x": 83.0,
+        "source_y": 243.0,
+        "subpixel_dx": -0.028558310121297836,
+        "subpixel_dy": -0.014690167270600796,
+        "confidence": 0.8808209174660504,
+        "residual_px": 0.15907569229602814
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          429.0,
+          488.0
+        ]
+      },
+      "properties": {
+        "id": 87,
+        "source_x": 451.0,
+        "source_y": 473.0,
+        "subpixel_dx": -0.16561181843280792,
+        "subpixel_dy": -0.08133949339389801,
+        "confidence": 0.870062412703816,
+        "residual_px": 0.25234469771385193
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          340.0,
+          353.0
+        ]
+      },
+      "properties": {
+        "id": 141,
+        "source_x": 358.0,
+        "source_y": 341.0,
+        "subpixel_dx": 0.11237815767526627,
+        "subpixel_dy": 0.14707890152931213,
+        "confidence": 0.8848359000469495,
+        "residual_px": 0.4931304156780243
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          320.0,
+          79.0
+        ]
+      },
+      "properties": {
+        "id": 252,
+        "source_x": 325.0,
+        "source_y": 73.0,
+        "subpixel_dx": -3.0,
+        "subpixel_dy": 4.0,
+        "confidence": 0.8969238313067415,
+        "residual_px": 0.8439096808433533
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          269.0,
+          20.0
+        ]
+      },
+      "properties": {
+        "id": 86,
+        "source_x": 275.0,
+        "source_y": 11.0,
+        "subpixel_dx": 0.039732713252305984,
+        "subpixel_dy": 0.2776511311531067,
+        "confidence": 0.9347383692171948,
+        "residual_px": 0.2700116038322449
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.0,
+          324.0
+        ]
+      },
+      "properties": {
+        "id": 60,
+        "source_x": 88.0,
+        "source_y": 322.0,
+        "subpixel_dx": -0.8168298602104187,
+        "subpixel_dy": 0.27795636653900146,
+        "confidence": 0.8334741399807186,
+        "residual_px": 0.21612045168876648
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          154.0,
+          426.0
+        ]
+      },
+      "properties": {
+        "id": 115,
+        "source_x": 174.0,
+        "source_y": 421.0,
+        "subpixel_dx": 0.06712958961725235,
+        "subpixel_dy": 0.10777044296264648,
+        "confidence": 0.861847987989455,
+        "residual_px": 0.17770570516586304
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          436.0,
+          165.0
+        ]
+      },
+      "properties": {
+        "id": 118,
+        "source_x": 450.0,
+        "source_y": 146.0,
+        "subpixel_dx": 3.0,
+        "subpixel_dy": -4.0,
+        "confidence": 0.8486677177206248,
+        "residual_px": 0.2719546854496002
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.0,
+          318.0
+        ]
+      },
+      "properties": {
+        "id": 92,
+        "source_x": 124.0,
+        "source_y": 314.0,
+        "subpixel_dx": -0.14967821538448334,
+        "subpixel_dy": -0.1279602199792862,
+        "confidence": 0.932525295958469,
+        "residual_px": 0.8883742690086365
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          270.0,
+          163.0
+        ]
+      },
+      "properties": {
+        "id": 101,
+        "source_x": 281.0,
+        "source_y": 154.0,
+        "subpixel_dx": 0.06257063150405884,
+        "subpixel_dy": 0.16403163969516754,
+        "confidence": 0.937959963344726,
+        "residual_px": 0.030656153336167336
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          183.0,
+          291.0
+        ]
+      },
+      "properties": {
+        "id": 236,
+        "source_x": 199.0,
+        "source_y": 285.0,
+        "subpixel_dx": 0.706400603055954,
+        "subpixel_dy": -0.40315762162208557,
+        "confidence": 0.9039055617532779,
+        "residual_px": 0.5891972780227661
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          45.0,
+          147.0
+        ]
+      },
+      "properties": {
+        "id": 129,
+        "source_x": 56.0,
+        "source_y": 145.0,
+        "subpixel_dx": 0.8547834903001785,
+        "subpixel_dy": -0.9528206661343575,
+        "confidence": 0.8478039554014977,
+        "residual_px": 0.36846232414245605
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          305.0,
+          324.0
+        ]
+      },
+      "properties": {
+        "id": 136,
+        "source_x": 322.0,
+        "source_y": 313.0,
+        "subpixel_dx": 0.04372704029083252,
+        "subpixel_dy": 0.05376609042286873,
+        "confidence": 0.8882392995033863,
+        "residual_px": 0.6801268458366394
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          482.0,
+          383.0
+        ]
+      },
+      "properties": {
+        "id": 162,
+        "source_x": 501.0,
+        "source_y": 366.0,
+        "subpixel_dx": -0.13884888589382172,
+        "subpixel_dy": -0.10005015134811401,
+        "confidence": 0.8893823064420664,
+        "residual_px": 0.32101207971572876
+      }
+    }
+  ]
+}

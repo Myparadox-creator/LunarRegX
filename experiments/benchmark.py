@@ -1,27 +1,26 @@
 """
-Automated Experimental Benchmarking Framework.
-Compares Baseline 1 (SIFT + RANSAC), Baseline 2 (AKAZE),
-Baseline 3 (Learned CNN Adapter), and Proposed (Phase-Structural Hybrid)
-across all 5 Challenge Scenarios:
-1. Baseline (Low illumination delta)
-2. Extreme Illumination (180 deg solar azimuth flip with shadow reversal)
-3. Multi-Scale (1.35x scale delta)
-4. Viewpoint & Oblique Shear
-5. Polar Permanent Shadow (High dynamic range, low SNR)
-
-Outputs real measured metrics (Zero fabricated data).
+Automated Scientific Experimental Benchmarking Framework.
+Compares:
+1. Baseline 1: SIFT + RANSAC
+2. Baseline 2: AKAZE
+3. Baseline 3: Learned CNN Adapter
+4. Baseline 4: RIFT2 / Structural MIM
+5. Baseline 5: LoFTR (Detector-Free Transformers)
+6. Proposed: GIS-Assisted Physics-Aware Hybrid Pipeline
+across the 5 Lunar Challenge Scenarios.
 """
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import time
+import argparse
 import pandas as pd
 import numpy as np
 
 from src.io.dataset import load_lunar_image
 from src.pipeline import LunarRegistrationPipeline, RegistrationPipelineConfig
 
-def run_benchmark():
+def run_benchmark(selected_method: str = "ALL"):
     data_dir = Path("data/samples")
     pairs = [
         ("Pair 1: Low Illumination Delta", data_dir / "pair1_baseline_src.png", data_dir / "pair1_baseline_ref.png"),
@@ -31,18 +30,27 @@ def run_benchmark():
         ("Pair 5: Polar Crater Deep Shadow", data_dir / "pair5_polar_shadow_src.png", data_dir / "pair5_polar_shadow_ref.png"),
     ]
 
-    methods = [
+    all_methods = [
         ("Baseline 1 (SIFT + RANSAC)", "SIFT", False, False),
         ("Baseline 2 (AKAZE)", "AKAZE", False, False),
         ("Baseline 3 (Learned CNN)", "LEARNED", False, False),
-        ("Proposed (Phase-Structural Hybrid)", "PHASE_STRUCTURAL", True, True),
+        ("Baseline 4 (RIFT2)", "RIFT2", False, False),
+        ("Baseline 5 (LoFTR Deep Matcher)", "LOFTR", False, False),
+        ("Proposed (GIS-Assisted Hybrid)", "PHASE_STRUCTURAL", True, True),
     ]
+
+    if selected_method != "ALL":
+        methods = [m for m in all_methods if selected_method.upper() in m[1].upper()]
+        if not methods:
+            methods = [("Custom " + selected_method, selected_method.upper(), True, True)]
+    else:
+        methods = all_methods
 
     results = []
 
-    print(f"\n{'='*95}")
-    print(f"{'EXPERIMENT':<32} | {'METHOD':<30} | {'INLIERS':<8} | {'RATIO':<6} | {'RMSE':<6} | {'COV':<6} | {'STATUS':<7}")
-    print(f"{'='*95}")
+    print(f"\n{'='*100}")
+    print(f"{'EXPERIMENT':<32} | {'METHOD':<28} | {'INLIERS':<8} | {'RATIO':<6} | {'RMSE':<8} | {'COV':<6} | {'STATUS':<7}")
+    print(f"{'='*100}")
 
     for pair_name, src_p, ref_p in pairs:
         if not src_p.exists() or not ref_p.exists():
@@ -62,43 +70,52 @@ def run_benchmark():
             pipeline = LunarRegistrationPipeline(config=cfg)
 
             try:
-                res = pipeline.run(src_lunar, ref_lunar)
-                m = res.metrics
+                out = pipeline.run(src_lunar, ref_lunar)
+                m = out.metrics
                 row = {
-                    "Scenario": pair_name,
-                    "Method": m_name,
-                    "Candidates": m.total_candidates,
-                    "Inliers": m.inlier_count,
-                    "Inlier_Ratio": f"{m.inlier_ratio:.1%}",
-                    "RMSE_px": round(m.rmse_total_px, 3),
-                    "Coverage": f"{m.grid_coverage_ratio:.1%}",
-                    "Runtime_s": round(m.runtime_sec, 2),
-                    "Status": m.status
+                    "scenario": pair_name,
+                    "method": m_name,
+                    "engine": feat_engine,
+                    "total_candidates": m.total_candidates,
+                    "inlier_count": m.inlier_count,
+                    "inlier_ratio": round(m.inlier_ratio, 3),
+                    "rmse_pixels": round(m.rmse_total_px, 3),
+                    "physical_error_m": round(m.physical_error_m, 2) if m.physical_error_m else None,
+                    "grid_coverage": round(m.grid_coverage_ratio, 3),
+                    "runtime_sec": round(m.runtime_sec, 2),
+                    "model_selected": m.model_name,
+                    "status": m.status
                 }
-                print(f"{pair_name[:32]:<32} | {m_name[:30]:<30} | {m.inlier_count:<8} | {m.inlier_ratio:<6.1%} | {m.rmse_total_px:<6.3f} | {m.grid_coverage_ratio:<6.1%} | {m.status:<7}")
+                print(f"{pair_name:<32} | {m_name:<28} | {m.inlier_count:<8} | {m.inlier_ratio*100:>5.1f}% | {m.rmse_total_px:>6.3f}px | {m.grid_coverage_ratio*100:>5.1f}% | {m.status:<7}")
             except Exception as e:
                 row = {
-                    "Scenario": pair_name,
-                    "Method": m_name,
-                    "Candidates": 0,
-                    "Inliers": 0,
-                    "Inlier_Ratio": "0.0%",
-                    "RMSE_px": None,
-                    "Coverage": "0.0%",
-                    "Runtime_s": 0.0,
-                    "Status": "FAILED"
+                    "scenario": pair_name,
+                    "method": m_name,
+                    "engine": feat_engine,
+                    "total_candidates": 0,
+                    "inlier_count": 0,
+                    "inlier_ratio": 0.0,
+                    "rmse_pixels": 0.0,
+                    "physical_error_m": None,
+                    "grid_coverage": 0.0,
+                    "runtime_sec": 0.0,
+                    "model_selected": "NONE",
+                    "status": "FAILURE"
                 }
-                print(f"{pair_name[:32]:<32} | {m_name[:30]:<30} | {'FAILED':<8} | {'0.0%':<6} | {'N/A':<6} | {'0.0%':<6} | {'FAILED':<7}")
+                print(f"{pair_name:<32} | {m_name:<28} | {'FAILED':<8} | {'0.0%':<6} | {'N/A':<8} | {'0.0%':<6} | {'FAILURE':<7} ({e})")
 
             results.append(row)
 
-    print(f"{'='*95}\n")
     df = pd.DataFrame(results)
     out_csv = Path("results/benchmark_results.csv")
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
-    print(f"[+] Saved complete benchmark table to {out_csv}")
+    print(f"\n{'='*100}")
+    print(f"Benchmark results saved to: {out_csv.resolve()}")
     return df
 
 if __name__ == "__main__":
-    run_benchmark()
+    parser = argparse.ArgumentParser(description="Lunar Image Correspondence Scientific Benchmark")
+    parser.add_argument("--method", type=str, default="ALL", help="Method filter: ALL, SIFT, AKAZE, LEARNED, RIFT2, LOFTR, PHASE_STRUCTURAL")
+    args = parser.parse_args()
+    run_benchmark(selected_method=args.method)
