@@ -302,7 +302,7 @@ if "reg_result" in st.session_state:
             c_g3.metric("Sun Azimuth Delta", f"{gis_info.sun_geometry['azimuth_delta_deg']:.1f}°" if gis_info.sun_geometry['azimuth_delta_deg'] is not None else "N/A", gis_info.sun_geometry['illumination_status'])
 
             st.markdown(f"""
-            * **Lunar Datum:** IAU-2000 Mean Sphere ($R = 1,737,400.0\text{ m}$)
+            * **Lunar Datum:** IAU-2000 Mean Sphere (Radius $R = 1,737.4\text{{ km}}$)
             * **Source Selenographic Footprint:** Lon bounds `[{gis_info.source_footprint['bounds_geo'][0]:.4f}, {gis_info.source_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.source_footprint['bounds_geo'][1]:.4f}, {gis_info.source_footprint['bounds_geo'][3]:.4f}]`
             * **Reference Selenographic Footprint:** Lon bounds `[{gis_info.reference_footprint['bounds_geo'][0]:.4f}, {gis_info.reference_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.reference_footprint['bounds_geo'][1]:.4f}, {gis_info.reference_footprint['bounds_geo'][3]:.4f}]`
             * **Intersection Area:** {gis_info.common_roi.get('intersection_area_km2', 0.0)} km²
