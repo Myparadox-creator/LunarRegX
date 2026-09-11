@@ -236,7 +236,7 @@ if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lun
             * **LRO LROC-WAC:** Wide Angle Camera ($100\text{ m/px}$)
             """)
         with c_g2:
-            st.markdown("""
+            st.markdown(r"""
             ### 📐 Recommended Input Specifications
             * **File Formats:** GeoTIFF, TIFF, PNG, JPEG, NPY
             * **Radiometric Depths:** 8-bit, 12-bit raw, 16-bit, 32-bit float
