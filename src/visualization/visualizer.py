@@ -57,7 +57,7 @@ def render_matches_visualization(
             cv2.circle(canvas, pt1, 3, (0, 255, 0), -1)
             cv2.circle(canvas, pt2, 3, (0, 255, 0), -1)
 
-    return canvas
+    return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
 def render_spatial_coverage_overlay(
     ref_img_8u: np.ndarray,
@@ -113,7 +113,7 @@ def render_spatial_coverage_overlay(
         cv2.circle(canvas, (rx, ry), 4, (0, 255, 255), -1, cv2.LINE_AA)
         cv2.circle(canvas, (rx, ry), 5, (0, 0, 0), 1, cv2.LINE_AA)
 
-    return canvas
+    return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
 def render_checkerboard(
     img_a: np.ndarray,
@@ -166,7 +166,7 @@ def render_difference_map(
         mask_3c = valid_mask[:h, :w, None]
         diff_color = np.where(mask_3c, diff_color, 0)
 
-    return diff_color
+    return cv2.cvtColor(diff_color, cv2.COLOR_BGR2RGB)
 
 def render_subpixel_quiver(
     inliers: List[Correspondence],

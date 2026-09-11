@@ -31,26 +31,27 @@ def run_benchmark(selected_method: str = "ALL"):
     ]
 
     all_methods = [
-        ("Baseline 1 (SIFT + RANSAC)", "SIFT", False, False),
-        ("Baseline 2 (AKAZE)", "AKAZE", False, False),
-        ("Baseline 3 (Learned CNN)", "LEARNED", False, False),
-        ("Baseline 4 (RIFT2)", "RIFT2", False, False),
-        ("Baseline 5 (LoFTR Deep Matcher)", "LOFTR", False, False),
-        ("Proposed (GIS-Assisted Hybrid)", "PHASE_STRUCTURAL", True, True),
+        ("Baseline 1 (SIFT + RANSAC)", "SIFT", False, False, None),
+        ("Baseline 2 (AKAZE)", "AKAZE", False, False, None),
+        ("Baseline 3 (Learned CNN)", "LEARNED", False, False, None),
+        ("Baseline 4 (RIFT2)", "RIFT2", False, False, None),
+        ("Baseline 5a (LoFTR Pretrained)", "LOFTR", False, False, "non_existent_pretrained_fallback"),
+        ("Baseline 5b (LoFTR Lunar Fine-Tuned)", "LOFTR", False, False, "models/loftr/lunar_finetuned/best.ckpt"),
+        ("Proposed (GIS-Assisted Hybrid)", "PHASE_STRUCTURAL", True, True, None),
     ]
 
     if selected_method != "ALL":
-        methods = [m for m in all_methods if selected_method.upper() in m[1].upper()]
+        methods = [m for m in all_methods if selected_method.upper() in m[1].upper() or selected_method.upper() in m[0].upper()]
         if not methods:
-            methods = [("Custom " + selected_method, selected_method.upper(), True, True)]
+            methods = [("Custom " + selected_method, selected_method.upper(), True, True, None)]
     else:
         methods = all_methods
 
     results = []
 
-    print(f"\n{'='*100}")
-    print(f"{'EXPERIMENT':<32} | {'METHOD':<28} | {'INLIERS':<8} | {'RATIO':<6} | {'RMSE':<8} | {'COV':<6} | {'STATUS':<7}")
-    print(f"{'='*100}")
+    print(f"\n{'='*115}")
+    print(f"{'EXPERIMENT':<32} | {'METHOD':<32} | {'INLIERS':<8} | {'RATIO':<6} | {'RMSE':<8} | {'COV':<6} | {'STATUS':<7}")
+    print(f"{'='*115}")
 
     for pair_name, src_p, ref_p in pairs:
         if not src_p.exists() or not ref_p.exists():
@@ -60,22 +61,25 @@ def run_benchmark(selected_method: str = "ALL"):
         src_lunar = load_lunar_image(src_p)
         ref_lunar = load_lunar_image(ref_p)
 
-        for m_name, feat_engine, use_anms, use_subpix in methods:
+        for m_name, feat_engine, use_anms, use_subpix, ckpt_p in methods:
             cfg = RegistrationPipelineConfig(
                 feature_method=feat_engine,
                 preferred_model="AUTO",
                 use_spatial_anms=use_anms,
-                use_subpixel=use_subpix
+                use_subpixel=use_subpix,
+                checkpoint_path=ckpt_p
             )
             pipeline = LunarRegistrationPipeline(config=cfg)
 
             try:
                 out = pipeline.run(src_lunar, ref_lunar)
                 m = out.metrics
+                provenance = out.matcher_info.get("loftr_mode") if out.matcher_info else feat_engine
                 row = {
                     "scenario": pair_name,
                     "method": m_name,
                     "engine": feat_engine,
+                    "weights_mode": provenance,
                     "total_candidates": m.total_candidates,
                     "inlier_count": m.inlier_count,
                     "inlier_ratio": round(m.inlier_ratio, 3),
@@ -86,7 +90,7 @@ def run_benchmark(selected_method: str = "ALL"):
                     "model_selected": m.model_name,
                     "status": m.status
                 }
-                print(f"{pair_name:<32} | {m_name:<28} | {m.inlier_count:<8} | {m.inlier_ratio*100:>5.1f}% | {m.rmse_total_px:>6.3f}px | {m.grid_coverage_ratio*100:>5.1f}% | {m.status:<7}")
+                print(f"{pair_name:<32} | {m_name:<32} | {m.inlier_count:<8} | {m.inlier_ratio*100:>5.1f}% | {m.rmse_total_px:>6.3f}px | {m.grid_coverage_ratio*100:>5.1f}% | {m.status:<7}")
             except Exception as e:
                 row = {
                     "scenario": pair_name,

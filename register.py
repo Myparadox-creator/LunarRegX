@@ -59,6 +59,9 @@ def main():
         print("=======================================================")
 
     print("\n================ REGISTRATION SUMMARY ================")
+    if result.matcher_info:
+        info = result.matcher_info
+        print(f"Matcher Engine:     {info.get('active_backend')} (Mode: {info.get('loftr_mode', 'N/A')})")
     print(f"Status:             {result.metrics.status}")
     print(f"Model:              {result.metrics.model_name}")
     print(f"Inliers:            {result.metrics.inlier_count} / {result.metrics.total_candidates} ({result.metrics.inlier_ratio:.1%})")

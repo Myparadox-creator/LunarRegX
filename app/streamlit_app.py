@@ -110,6 +110,13 @@ elif "AKAZE" in feature_method:
 else:
     engine_key = "LEARNED"
 
+if engine_key == "LOFTR":
+    loftr_ckpt = ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt"
+    if loftr_ckpt.exists():
+        st.sidebar.caption("🟢 **LoFTR Status:** Lunar Fine-Tuned Checkpoint Active (`best.ckpt`)")
+    else:
+        st.sidebar.caption("🟡 **LoFTR Status:** Pretrained Outdoor Fallback")
+
 model_choice = st.sidebar.selectbox("Transformation Model", ["AUTO (Stability-Guided)", "SIMILARITY (4-DOF)", "AFFINE (6-DOF)", "HOMOGRAPHY (8-DOF)"], index=0)
 model_key = "AUTO" if "AUTO" in model_choice else ("SIMILARITY" if "SIMILARITY" in model_choice else ("AFFINE" if "AFFINE" in model_choice else "HOMOGRAPHY"))
 
@@ -162,27 +169,56 @@ if mode == "🏆 SIH Judge Demonstration Mode":
         st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.")
 
 else:
-    st.sidebar.subheader("Upload Custom Lunar Images")
-    st.sidebar.caption("Supported: 8/12/16-bit GeoTIFF, TIFF, PNG, JPEG")
-    up_src = st.sidebar.file_uploader("Upload Source / Moving Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
-    up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+    st.sidebar.subheader("Select or Upload Lunar Images")
+    custom_source = st.sidebar.radio(
+        "Image Selection Method",
+        ["📂 Ingested Flight Images (Ready to Use)", "📤 Upload Files from Computer"],
+        index=0
+    )
 
-    if up_src and up_ref:
-        try:
-            tmp_dir = ROOT_DIR / "results" / "temp_uploads"
-            tmp_dir.mkdir(parents=True, exist_ok=True)
-            s_p = tmp_dir / up_src.name
-            r_p = tmp_dir / up_ref.name
-            s_p.write_bytes(up_src.read())
-            r_p.write_bytes(up_ref.read())
-            src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
-            ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
-        except Exception as e:
-            st.sidebar.error(f"❌ Error loading uploaded images: {e}")
-            src_lunar = None
-            ref_lunar = None
-    elif up_src or up_ref:
-        st.sidebar.info("ℹ️ Uploaded 1 of 2 images. Please upload the matching pair to proceed.")
+    if custom_source == "📂 Ingested Flight Images (Ready to Use)":
+        available_flight = {
+            "Chandrayaan-2 OHRC (Landing Site Survey, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
+            "Chandrayaan-2 OHRC (Sept 2019 Vikram Site Pass)": samples_dir / "real_ch2_ohrc_sept2019_vikram.png",
+            "Chandrayaan-2 IIRS (Oct 2023 Hyperspectral Infrared)": samples_dir / "real_ch2_iirs_infrared_pass.png",
+            "Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
+            "Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
+        }
+        src_name = st.sidebar.selectbox("Select Source / Moving Image", list(available_flight.keys()), index=0)
+        ref_name = st.sidebar.selectbox("Select Reference / Fixed Image", list(available_flight.keys()), index=1)
+        
+        s_p = available_flight[src_name]
+        r_p = available_flight[ref_name]
+        if s_p.exists() and r_p.exists():
+            try:
+                src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
+                ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+            except Exception as e:
+                st.sidebar.error(f"❌ Error loading selected flight images: {e}")
+                src_lunar = None
+                ref_lunar = None
+    else:
+        st.sidebar.caption("Supported: 8/12/16-bit GeoTIFF, TIFF, PNG, JPEG")
+        st.sidebar.caption("💡 Real flight PNGs are also saved in `D:\\Downloads2\\Lunar_Flight_Images\\`")
+        up_src = st.sidebar.file_uploader("Upload Source / Moving Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+        up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+
+        if up_src and up_ref:
+            try:
+                tmp_dir = ROOT_DIR / "results" / "temp_uploads"
+                tmp_dir.mkdir(parents=True, exist_ok=True)
+                s_p = tmp_dir / up_src.name
+                r_p = tmp_dir / up_ref.name
+                s_p.write_bytes(up_src.read())
+                r_p.write_bytes(up_ref.read())
+                src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
+                ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+            except Exception as e:
+                st.sidebar.error(f"❌ Error loading uploaded images: {e}")
+                src_lunar = None
+                ref_lunar = None
+        elif up_src or up_ref:
+            st.sidebar.info("ℹ️ Uploaded 1 of 2 images. Please upload the matching pair to proceed.")
 
 # Guidance screen when in Custom Upload mode and images are not yet provided
 if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lunar is None):
@@ -336,6 +372,11 @@ if "reg_result" in st.session_state:
     with tabs[3]:
         st.write("**Stage 4: Candidate Correspondences**")
         st.write(f"Identified {m.total_candidates} candidate matches across the scene using {feature_method}.")
+        if res.matcher_info and "LOFTR" in str(res.matcher_info.get("active_backend", "")):
+            if res.matcher_info.get("checkpoint_loaded"):
+                st.info(f"🛰️ **Active LoFTR Weights:** Lunar Fine-Tuned Checkpoint (`{res.matcher_info.get('checkpoint_path')}`) | Supervised on calibrated lunar geometry.")
+            else:
+                st.warning("⚠️ **Active LoFTR Weights:** Pretrained Outdoor Fallback | No fine-tuned lunar checkpoint found.")
         st.image(res.vis_matches, caption="Candidate Matches (Green: Inliers | Red: Filtered Outliers)", use_container_width=True)
 
     with tabs[4]:

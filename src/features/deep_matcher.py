@@ -24,31 +24,58 @@ class DeepCorrespondenceMatcher:
         self,
         backend: str = "LOFTR",
         confidence_thresh: float = 0.25,
-        max_dimension: int = 640
+        max_dimension: int = 640,
+        checkpoint_path: Optional[str] = None
     ):
         self.backend = backend.upper()
         self.confidence_thresh = confidence_thresh
         self.max_dimension = max_dimension
-        self.device = torch.device("cpu")  # CPU execution for standard environments
+        self.checkpoint_path = checkpoint_path or "models/loftr/lunar_finetuned/best.ckpt"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = None
         self.fallback_model = None
         self.active_backend = self.backend
+        self.loftr_mode = "pretrained"
+        self.checkpoint_loaded = False
         self._init_backend()
 
     def _init_backend(self):
         if self.backend == "LOFTR":
             try:
                 import kornia.feature as kf
-                # Try loading pretrained LoFTR weights; if offline, catch gracefully
+                from pathlib import Path
+                chk_file = Path(self.checkpoint_path)
+
+                # Initialize base model architecture
                 try:
-                    self.model = kf.LoFTR(pretrained="outdoor").to(self.device).eval()
-                    self.active_backend = "LOFTR (Pretrained Outdoor)"
+                    self.model = kf.LoFTR(pretrained="outdoor").to(self.device)
                 except Exception:
-                    self.model = kf.LoFTR(pretrained=None).to(self.device).eval()
-                    self.active_backend = "LOFTR (Local Kaiming Weights)"
+                    self.model = kf.LoFTR(pretrained=None).to(self.device)
+
+                # Priority 1: Check for lunar fine-tuned checkpoint
+                if chk_file.exists():
+                    try:
+                        chk_data = torch.load(str(chk_file), map_location=self.device)
+                        state_dict = chk_data.get("state_dict", chk_data)
+                        self.model.load_state_dict(state_dict)
+                        self.active_backend = "LOFTR (Lunar Fine-Tuned)"
+                        self.loftr_mode = "lunar_finetuned"
+                        self.checkpoint_loaded = True
+                    except Exception as e:
+                        # Fallback to pretrained if loading fails
+                        self.active_backend = "LOFTR (Pretrained Outdoor Fallback)"
+                        self.loftr_mode = "pretrained"
+                        self.checkpoint_loaded = False
+                else:
+                    self.active_backend = "LOFTR (Pretrained Outdoor Fallback)"
+                    self.loftr_mode = "pretrained"
+                    self.checkpoint_loaded = False
+
+                self.model.eval()
             except Exception as e:
                 self.fallback_model = LightweightLunarNet().eval()
                 self.active_backend = f"FALLBACK_LUNARNET ({e})"
+                self.loftr_mode = "fallback_cnn"
         elif self.backend == "LIGHTGLUE":
             try:
                 import kornia.feature as kf

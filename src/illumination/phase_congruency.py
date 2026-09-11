@@ -39,14 +39,14 @@ class LogGaborPhaseCongruency:
         self.noise_k = noise_k
 
     def _construct_filter_bank(self, rows: int, cols: int):
-        # Frequency mesh
-        y, x = np.mgrid[-rows//2:int(np.ceil(rows/2)), -cols//2:int(np.ceil(cols/2))]
-        y = y / float(rows)
-        x = x / float(cols)
+        # Canonical frequency mesh using np.fft.fftfreq
+        y_vals = np.fft.fftshift(np.fft.fftfreq(rows))
+        x_vals = np.fft.fftshift(np.fft.fftfreq(cols))
+        y, x = np.meshgrid(y_vals, x_vals, indexing='ij')
         radius = np.sqrt(x**2 + y**2)
         theta = np.arctan2(y, -x)
-        # Avoid log(0)
-        radius[rows//2, cols//2] = 1.0
+        # Avoid log(0) at DC
+        radius[rows // 2, cols // 2] = 1.0
 
         theta_sigma = np.pi / (self.n_orientations * self.d_theta_on_sigma)
         filters = []

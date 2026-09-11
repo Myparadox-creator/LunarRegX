@@ -63,6 +63,7 @@ class RegistrationPipelineConfig:
     subpixel_patch_size: int = 17
     subpixel_search_radius: int = 4
     independent_val_split: float = 0.20       # 20% held-out checkpoints
+    checkpoint_path: Optional[str] = None     # Custom checkpoint override (e.g. for LoFTR)
 
 @dataclass
 class RegistrationOutput:
@@ -83,6 +84,7 @@ class RegistrationOutput:
     # GIS and Multimodal Metadata
     spatial_pre_reg: Optional[SpatialPreRegistrationResult] = None
     common_roi_window: Optional[Tuple[int, int, int, int]] = None
+    matcher_info: Optional[Dict[str, Any]] = None
 
     def export_control_points_dataframe(self) -> pd.DataFrame:
         """
@@ -159,7 +161,10 @@ class LunarRegistrationPipeline:
         # 1. Feature / Matcher Engine
         self.is_deep_matcher = m in ["LOFTR", "LIGHTGLUE", "DEEP_MATCHER"]
         if self.is_deep_matcher:
-            self.deep_matcher = DeepCorrespondenceMatcher(backend="LOFTR" if "LOFTR" in m else "LIGHTGLUE")
+            self.deep_matcher = DeepCorrespondenceMatcher(
+                backend="LOFTR" if "LOFTR" in m else "LIGHTGLUE",
+                checkpoint_path=cfg.checkpoint_path
+            )
             self.feature_engine = None
         elif m in ["SIFT", "AKAZE", "ORB"]:
             self.feature_engine = ClassicalFeatureEngine(method=m)
@@ -328,6 +333,23 @@ class LunarRegistrationPipeline:
         vis_diff = render_difference_map(warped_8u, ref_8u, warped_mask)
         vis_subpix = render_subpixel_quiver(inliers, reference.shape)
 
+        # Matcher provenance tracking
+        matcher_info = {}
+        if self.is_deep_matcher and self.deep_matcher is not None:
+            matcher_info = {
+                "active_backend": self.deep_matcher.active_backend,
+                "loftr_mode": self.deep_matcher.loftr_mode,
+                "checkpoint_loaded": self.deep_matcher.checkpoint_loaded,
+                "checkpoint_path": self.deep_matcher.checkpoint_path
+            }
+        else:
+            matcher_info = {
+                "active_backend": cfg.feature_method,
+                "loftr_mode": "classical_or_phase",
+                "checkpoint_loaded": False,
+                "checkpoint_path": None
+            }
+
         return RegistrationOutput(
             source_image=source,
             reference_image=reference,
@@ -342,5 +364,6 @@ class LunarRegistrationPipeline:
             vis_checkerboard=vis_checker,
             vis_diff=vis_diff,
             vis_subpixel=vis_subpix,
-            spatial_pre_reg=spatial_pre_reg
+            spatial_pre_reg=spatial_pre_reg,
+            matcher_info=matcher_info
         )

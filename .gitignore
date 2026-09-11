@@ -26,3 +26,16 @@ ehthumbs.db
 Desktop.ini
 .BIN/
 .DS_Store
+
+# Large binary models & temporary outputs
+*.ckpt
+*.pth
+models/**/*.ckpt
+models/**/*.pth
+results/cli_test_*/
+data/raw/extracted_pradan/
+data/raw/**/*.png
+data/samples/real_ch2_ohrc_*.png
+
+
+
