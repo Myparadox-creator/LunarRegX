@@ -19,7 +19,8 @@
 [Correspondence Engines](#-6-pluggable-correspondence-engines) •
 [Judge Demonstration Mode](#-sih-judge-demonstration-mode) •
 [PRADAN Ingestion](#-isro-pradan--pds4-flight-ingestion) •
-[API & CLI](#-cli--fastapi-rest-api)
+[API & CLI](#-cli--fastapi-rest-api) •
+[Vercel Deployment](DEPLOYMENT.md)
 
 ---
 
