@@ -21,7 +21,7 @@
 | Platform | Target Audience | Live Link |
 | :--- | :--- | :--- |
 | 🌕 **Streamlit Community Cloud** | **Full SIH Judge Demonstration & Interactive Prototype** | [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/) |
-| 🚀 **Vercel Cloud Edge** | **Web Presentation Showcase, Tie-Point Visualizer & API Gateway** | [**lunar-reg-x12.vercel.app**](https://lunar-reg-x12.vercel.app) |
+| 🚀 **Vercel Cloud Edge** | **Web Presentation Showcase, Tie-Point Visualizer & API Gateway** | [**lunar-reg-x12.vercel.app**](https://lunarregx-vasesd7fpc8mguqqsydhpf.streamlit.app/) |
 
 <br>
 
