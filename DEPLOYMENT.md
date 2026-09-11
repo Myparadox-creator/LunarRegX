@@ -1,78 +1,53 @@
 # 🚀 LunarRegX Deployment Guide
 **Smart India Hackathon (SIH 2026) | Problem ID: 26166**
 
-This guide provides step-by-step instructions for deploying the **LunarRegX Web Dashboard** and **API Gateway** to **Vercel**, as well as hosting the persistent PyTorch/Streamlit application on **Streamlit Community Cloud** or **HuggingFace Spaces**.
+This guide provides instructions for deploying the **LunarRegX Prototype Dashboard** to **Streamlit Community Cloud**, as well as hosting via **Docker** or running the **FastAPI REST API**.
 
 ---
 
-## 🌐 1. Deploying to Vercel (Recommended for SIH Submissions)
+## 🌕 1. Deploying on Streamlit Community Cloud (100% Free)
 
-Vercel provides a lightning-fast, globally distributed edge deployment with zero cold starts. It hosts the **LunarRegX Web Showcase**, the **Interactive SIH 2026 Judge Walkthrough**, and the **Serverless API Gateway**.
+Streamlit Community Cloud hosts the full, interactive Python application with all 6 correspondence engines directly from your GitHub repository.
 
-### Method A: 1-Click GitHub Import (Easiest)
-1. Go to [vercel.com](https://vercel.com) and log in with your GitHub account.
-2. Click **"Add New..."** &rarr; **"Project"**.
-3. In the list of repositories, select **`LunarRegX`** (or paste `https://github.com/Myparadox-creator/LunarRegX.git`).
-4. Vercel will automatically detect `vercel.json`:
-   * **Framework Preset:** `Other`
-   * **Root Directory:** `./`
-   * **Build Command:** Leave blank (handled automatically)
-   * **Output Directory:** Leave blank (handled automatically)
-5. Click **Deploy**.
-6. In **~15 seconds**, your project will be live at:
-   ```text
-   https://lunarregx.vercel.app
-   ```
-   *(or your assigned custom `.vercel.app` domain)*
+### Step-by-Step 1-Click Deployment:
 
-### Method B: Deploying via Vercel CLI
-If you have Node.js installed, you can deploy straight from your terminal:
-```bash
-# 1. Install Vercel CLI globally
-npm install -g vercel
-
-# 2. Login to your Vercel account
-vercel login
-
-# 3. Deploy to production
-vercel --prod
-```
-
-### What Vercel Serves:
-* **Interactive Web Dashboard:** `https://your-domain.vercel.app/`
-* **Serverless Health Check:** `https://your-domain.vercel.app/api/health`
-* **Supported Sensors API:** `https://your-domain.vercel.app/api/sensors`
-* **Benchmark Metrics API:** `https://your-domain.vercel.app/api/results`
-* **OpenAPI Swagger Docs:** `https://your-domain.vercel.app/api/docs`
-
----
-
-## 🌕 2. Deploying Streamlit on Streamlit Community Cloud (100% Free)
-
-To host the full, stateful Python Streamlit application with all 6 correspondence engines online:
-
-1. Push your latest code to GitHub:
+1. **Verify Latest Code on GitHub:**
+   Make sure all changes are pushed to `main`:
    ```bash
    git push origin main
    ```
-2. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with GitHub.
-3. Click **"New app"**.
-4. Configure the deployment:
-   * **Repository:** `Myparadox-creator/LunarRegX`
-   * **Branch:** `main`
-   * **Main file path:** `app/streamlit_app.py`
-5. Click **"Deploy!"**.
-6. Streamlit Cloud will spin up a persistent Python environment and give you a public URL (e.g. `https://lunarregx.streamlit.app`).
+
+2. **Access Streamlit Community Cloud:**
+   Go to **[share.streamlit.io](https://share.streamlit.io/)** and sign in with your GitHub account.
+
+3. **Deploy the App:**
+   * Click **"New app"** (or **"Create app"**).
+   * Fill in the repository parameters:
+     * **Repository:** `Myparadox-creator/LunarRegX`
+     * **Branch:** `main`
+     * **Main file path:** `streamlit_app.py`
+   * Click **"Deploy!"**.
+
+4. **Live Access:**
+   Streamlit Cloud automatically provisions the container, installs dependencies from `requirements.txt` and `packages.txt`, and generates a public URL:
+   ```text
+   https://<your-custom-subdomain>.streamlit.app
+   ```
+
+### Pre-Configured Cloud Assets:
+* **Root Entrypoint:** `streamlit_app.py` dispatches cleanly to `app/streamlit_app.py` with full package path resolution.
+* **C-Libraries:** `packages.txt` provides `libgl1` and `libglib2.0-0` for headless OpenCV cartography.
+* **Geospatial Stack:** `requirements.txt` includes `pyproj`, `shapely`, `rasterio`, and `affine`.
 
 ---
 
-## 🐳 3. Deploying via Docker (Any Cloud / Render / Railway)
+## 🐳 2. Deploying via Docker (Any Cloud / Server / Render)
 
-If you prefer deploying a full containerized REST API or web app:
+For containerized deployments on local servers, AWS EC2, GCP Cloud Run, or Render:
 
 ```dockerfile
 # Dockerfile
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 git && rm -rf /var/lib/apt/lists/*
@@ -83,23 +58,31 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8501 8000
-CMD ["streamlit", "run", "app/streamlit_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
 ```
 
-Build and run locally or on any cloud:
+### Build & Run:
 ```bash
+# Build the container
 docker build -t lunarregx .
-docker run -p 8501:8501 -p 8000:8000 lunarregx
+
+# Run Streamlit dashboard
+docker run -p 8501:8501 lunarregx
 ```
 
 ---
 
-## 📋 Architecture Comparison
+## ⚡ 3. Running the FastAPI REST API Service
 
-| Feature | Vercel (Edge & Serverless) | Streamlit Community Cloud | Local Workstation |
-| :--- | :---: | :---: | :---: |
-| **Primary Use Case** | Public Jury Presentation & API | Full Interactive App | Development & PRADAN Ingestion |
-| **Deployment Speed** | **< 15 seconds** | ~2 minutes | Instant |
-| **Cold Starts** | **0 seconds (Global CDN)** | ~10-20 seconds | None |
-| **PDS4 Zip Ingestion** | Metadata & Tiles | Small tiles (< 50MB) | **Full 1.15 GB rasters** |
-| **Cost** | **100% Free** | **100% Free** | Free |
+To run the standalone, high-performance REST API backend for automated pipeline invocation:
+
+```bash
+# Launch FastAPI backend on port 8000
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+* **Interactive Swagger Documentation:** `http://localhost:8000/docs`
+* **OpenAPI Schema:** `http://localhost:8000/openapi.json`
+* **Health Check:** `http://localhost:8000/health`
+* **Supported Sensors:** `http://localhost:8000/sensors`
+* **Benchmark Results:** `http://localhost:8000/benchmarks`

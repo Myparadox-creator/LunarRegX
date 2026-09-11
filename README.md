@@ -7,7 +7,7 @@
 
 ---
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://lunarregx-vasesd7fpc8mguqqsydhpf.streamlit.app/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -17,13 +17,13 @@
 
 <br>
 
-### 🌐 Live Interactive Deployments
-| Platform | Target Audience | Live Link |
-| :--- | :--- | :--- |
-| 🌕 **Streamlit Community Cloud** | **Full SIH Judge Demonstration & Interactive Prototype** | [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/) |
-| 🚀 **Vercel Cloud Edge** | **Web Presentation Showcase, Tie-Point Visualizer & API Gateway** | [**lunar-reg-x12.vercel.app**](https://lunarregx-vasesd7fpc8mguqqsydhpf.streamlit.app/) |
+### 🌐 Live Interactive Prototype
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://lunarregx-vasesd7fpc8mguqqsydhpf.streamlit.app/)  
+👉 **[Launch LunarRegX Live on Streamlit Cloud](https://lunarregx-vasesd7fpc8mguqqsydhpf.streamlit.app/)**  
+*Autonomous Chandrayaan-2 Co-Registration Suite • 6 Correspondence Algorithms • 11-Stage SIH Demonstration*
 
 <br>
+
 
 [Explore Architecture](#-system-architecture) •
 [Correspondence Engines](#-6-pluggable-correspondence-engines) •
