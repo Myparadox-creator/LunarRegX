@@ -7,20 +7,30 @@
 
 ---
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B.svg?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![Tests Passing](https://img.shields.io/badge/Tests-35%2F35%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Myparadox-creator/LunarRegX)
 [![Accuracy](https://img.shields.io/badge/Sub--Pixel%20Accuracy-%3C%200.30%20px-9cf.svg?style=for-the-badge&logo=target&logoColor=white)](https://github.com/Myparadox-creator/LunarRegX)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+<br>
+
+### 🌐 Live Interactive Deployments
+| Platform | Target Audience | Live Link |
+| :--- | :--- | :--- |
+| 🌕 **Streamlit Community Cloud** | **Full SIH Judge Demonstration & Interactive Prototype** | [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/) |
+| 🚀 **Vercel Cloud Edge** | **Web Presentation Showcase, Tie-Point Visualizer & API Gateway** | [**lunar-reg-x12.vercel.app**](https://lunar-reg-x12.vercel.app) |
+
+<br>
 
 [Explore Architecture](#-system-architecture) •
 [Correspondence Engines](#-6-pluggable-correspondence-engines) •
 [Judge Demonstration Mode](#-sih-judge-demonstration-mode) •
 [PRADAN Ingestion](#-isro-pradan--pds4-flight-ingestion) •
 [API & CLI](#-cli--fastapi-rest-api) •
-[Vercel Deployment](DEPLOYMENT.md)
+[Deployment Guide](DEPLOYMENT.md)
 
 ---
 
