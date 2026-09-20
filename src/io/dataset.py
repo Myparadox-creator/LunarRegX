@@ -120,6 +120,37 @@ def load_lunar_image(
             gsd=gsd_override or 1.0
         )
 
+    # 1. Check for companion PDS4 XML metadata file
+    xml_meta = _find_and_parse_companion_xml(path)
+    if xml_meta:
+        if "solar_azimuth_deg" in xml_meta:
+            meta.solar_azimuth_deg = xml_meta["solar_azimuth_deg"]
+        if "solar_elevation_deg" in xml_meta:
+            meta.solar_elevation_deg = xml_meta["solar_elevation_deg"]
+        if "incidence_angle_deg" in xml_meta:
+            meta.incidence_angle_deg = xml_meta["incidence_angle_deg"]
+        if "sensor_name" in xml_meta and (not sensor_name or sensor_name == "UNKNOWN_LUNAR"):
+            meta.sensor_name = xml_meta["sensor_name"]
+        for k, v in xml_meta.items():
+            meta.extra_attributes[k] = v
+
+    # 2. Check for embedded GeoTIFF metadata via rasterio
+    if suffix in [".tif", ".tiff", ".geotiff"]:
+        try:
+            import rasterio
+            with rasterio.open(str(path)) as r_src:
+                meta.extra_attributes["bounds_proj"] = (r_src.bounds.left, r_src.bounds.bottom, r_src.bounds.right, r_src.bounds.top)
+                if r_src.crs:
+                    meta.extra_attributes["crs_wkt"] = r_src.crs.to_wkt()
+                    meta.extra_attributes["crs"] = str(r_src.crs)
+                if r_src.res and len(r_src.res) == 2 and gsd_override is None:
+                    # GSD from raster resolution
+                    calc_gsd = float(abs(r_src.res[0]))
+                    if calc_gsd > 0.0001:
+                        meta.gsd = calc_gsd
+        except Exception:
+            pass
+
     if gsd_override is not None:
         meta.gsd = gsd_override
 
@@ -131,6 +162,75 @@ def load_lunar_image(
         mask=mask,
         filepath=str(path)
     )
+
+def _find_and_parse_companion_xml(img_path: Path) -> Dict[str, Any]:
+    """
+    Search for companion PDS4 XML metadata label in the same directory and parse solar/spatial parameters.
+    """
+    import xml.etree.ElementTree as ET
+    meta = {}
+    
+    candidates = [
+        img_path.with_suffix(".xml"),
+        img_path.with_suffix(".XML"),
+        img_path.parent / (img_path.stem + ".xml"),
+        img_path.parent / (img_path.stem.lower() + ".xml")
+    ]
+    xml_path = None
+    for c in candidates:
+        if c.exists():
+            xml_path = c
+            break
+            
+    if not xml_path:
+        return meta
+
+    try:
+        tree = ET.parse(str(xml_path))
+        root = tree.getroot()
+        for elem in root.iter():
+            if "}" in elem.tag:
+                elem.tag = elem.tag.split("}", 1)[1]
+
+        az = root.find(".//solar_azimuth_angle") or root.find(".//sun_azimuth_angle")
+        el = root.find(".//solar_elevation_angle") or root.find(".//sun_elevation_angle")
+        inc = root.find(".//incidence_angle")
+
+        if az is not None and az.text:
+            meta["solar_azimuth_deg"] = float(az.text)
+        if el is not None and el.text:
+            meta["solar_elevation_deg"] = float(el.text)
+        if inc is not None and inc.text:
+            meta["incidence_angle_deg"] = float(inc.text)
+
+        w_lon = root.find(".//westernmost_longitude") or root.find(".//west_bounding_coordinate")
+        e_lon = root.find(".//easternmost_longitude") or root.find(".//east_bounding_coordinate")
+        n_lat = root.find(".//northernmost_latitude") or root.find(".//north_bounding_coordinate")
+        s_lat = root.find(".//southernmost_latitude") or root.find(".//south_bounding_coordinate")
+
+        if all(x is not None and x.text for x in [w_lon, e_lon, n_lat, s_lat]):
+            min_lon = float(w_lon.text)
+            max_lon = float(e_lon.text)
+            min_lat = float(s_lat.text)
+            max_lat = float(n_lat.text)
+            meta["bounds_geo"] = (min_lon, min_lat, max_lon, max_lat)
+            meta["center_longitude"] = (min_lon + max_lon) / 2.0
+            meta["center_latitude"] = (min_lat + max_lat) / 2.0
+
+        # Sensor detection from filename
+        fname = xml_path.name.lower()
+        if "ohr" in fname:
+            meta["sensor_name"] = "OHRC"
+        elif "tmc" in fname:
+            meta["sensor_name"] = "TMC2"
+        elif "iir" in fname:
+            meta["sensor_name"] = "IIRS"
+        elif "lroc" in fname or "nac" in fname:
+            meta["sensor_name"] = "LROC_NAC"
+    except Exception:
+        pass
+        
+    return meta
 
 def save_lunar_image(
     filepath: str | Path,

@@ -62,3 +62,34 @@ def test_gis_pre_registration_analyzer():
     assert res.overlap_detected is True
     assert res.sun_geometry["illumination_status"] == "EXTREME_SHADOW_FLIP"
     assert res.scale_ratio == 0.5
+    assert "src_crop_window" in res.common_roi
+    assert "ref_crop_window" in res.common_roi
+
+def test_bounds_geo_footprint_creation():
+    from src.gis.footprint import create_footprint_from_bounds
+    # Lunar bounds near equator
+    fp = create_footprint_from_bounds(min_lon=10.0, min_lat=-5.0, max_lon=10.5, max_lat=-4.5, gsd_m=25.0)
+    assert fp.area_km2 > 0
+    assert fp.bounds_geo == (10.0, -5.0, 10.5, -4.5)
+
+def test_multiscale_cross_sensor_roi_detection():
+    # OHRC (0.25 m/px, 1000x1000) inside IIRS/TMC2 (5.0 m/px, 500x500)
+    meta_ohrc = SensorMetadata(sensor_name="OHRC", gsd=0.25)
+    meta_tmc = SensorMetadata(sensor_name="TMC2", gsd=5.0)
+    
+    raw_ohrc = np.zeros((1000, 1000), dtype=np.uint8)
+    raw_tmc = np.zeros((500, 500), dtype=np.uint8)
+    
+    src = LunarImage(raw_array=raw_ohrc, normalized=raw_ohrc.astype(np.float32), display_8bit=raw_ohrc, metadata=meta_ohrc)
+    ref = LunarImage(raw_array=raw_tmc, normalized=raw_tmc.astype(np.float32), display_8bit=raw_tmc, metadata=meta_tmc)
+    
+    analyzer = GISPreRegistrationAnalyzer(default_lat=-70.0, default_lon=0.0)
+    res = analyzer.analyze(src, ref)
+    
+    assert res.overlap_detected is True
+    assert res.scale_ratio == 0.05
+    assert res.common_roi["has_roi"] is True
+    assert res.common_roi["src_crop_window"] is not None
+    assert res.common_roi["ref_crop_window"] is not None
+    # OHRC is completely inside TMC2
+    assert res.overlap_percentage == pytest.approx(50.5, abs=1.0) # 100% of src, ~1% of ref -> mean ~50.5%

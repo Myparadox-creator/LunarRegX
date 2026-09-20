@@ -108,13 +108,23 @@ def compute_footprint_intersection(
 
     if has_overlap and hasattr(inter_geo, "exterior"):
         coords = list(inter_geo.exterior.coords)
-        proj_coords = [ref_footprint.crs.forward(lon, lat) for lon, lat in coords]
-        inter_proj = Polygon(proj_coords)
-        inter_area_km2 = float(inter_proj.area / 1e6)
-        inter_bounds_proj = inter_proj.bounds
+        # Reference CRS projection
+        ref_proj_coords = [ref_footprint.crs.forward(lon, lat) for lon, lat in coords]
+        ref_inter_proj = Polygon(ref_proj_coords)
+        inter_area_km2 = float(ref_inter_proj.area / 1e6)
+        ref_inter_bounds_proj = ref_inter_proj.bounds
+
+        # Source CRS projection
+        src_proj_coords = [src_footprint.crs.forward(lon, lat) for lon, lat in coords]
+        src_inter_proj = Polygon(src_proj_coords)
+        src_inter_bounds_proj = src_inter_proj.bounds
+
+        inter_bounds_geo = inter_geo.bounds
     else:
         inter_area_km2 = 0.0
-        inter_bounds_proj = None
+        ref_inter_bounds_proj = None
+        src_inter_bounds_proj = None
+        inter_bounds_geo = None
 
     src_area = src_footprint.area_km2
     ref_area = ref_footprint.area_km2
@@ -131,13 +141,17 @@ def compute_footprint_intersection(
         "scale_ratio": round(scale_ratio, 4),
         "source_gsd_m": src_footprint.gsd_m,
         "reference_gsd_m": ref_footprint.gsd_m,
-        "intersection_bounds_proj": inter_bounds_proj
+        "intersection_bounds_proj": ref_inter_bounds_proj,
+        "source_intersection_bounds_proj": src_inter_bounds_proj,
+        "intersection_bounds_geo": inter_bounds_geo
     }
 
 def extract_common_roi(
     image: np.ndarray,
     footprint: LunarFootprint,
-    target_bounds_proj: Tuple[float, float, float, float]
+    target_bounds_proj: Tuple[float, float, float, float],
+    margin_ratio: float = 0.0,
+    min_size_px: int = 0
 ) -> Tuple[np.ndarray, Tuple[int, int, int, int]]:
     """
     Crops pixel array to target projected bounding box.
@@ -150,14 +164,40 @@ def extract_common_roi(
     t_min_x, t_min_y, t_max_x, t_max_y = target_bounds_proj
 
     # Compute fractional pixel bounding box
-    px_w_m = (max_x - min_x) / w
-    px_h_m = (max_y - min_y) / h
+    px_w_m = (max_x - min_x) / w if w > 0 else 1.0
+    px_h_m = (max_y - min_y) / h if h > 0 else 1.0
 
     x0 = int(np.clip(round((t_min_x - min_x) / px_w_m), 0, w - 1))
     x1 = int(np.clip(round((t_max_x - min_x) / px_w_m), 1, w))
     # y is inverted in image coordinates (top to bottom)
     y0 = int(np.clip(round((max_y - t_max_y) / px_h_m), 0, h - 1))
     y1 = int(np.clip(round((max_y - t_min_y) / px_h_m), 1, h))
+
+    if margin_ratio > 0.0:
+        bw = x1 - x0
+        bh = y1 - y0
+        mx = int(bw * margin_ratio)
+        my = int(bh * margin_ratio)
+        x0 = max(0, x0 - mx)
+        x1 = min(w, x1 + mx)
+        y0 = max(0, y0 - my)
+        y1 = min(h, y1 + my)
+
+    if min_size_px > 0:
+        bw = x1 - x0
+        if bw < min_size_px and w >= min_size_px:
+            pad = (min_size_px - bw) // 2
+            x0 = max(0, x0 - pad)
+            x1 = min(w, x0 + min_size_px)
+            if x1 - x0 < min_size_px:
+                x0 = max(0, x1 - min_size_px)
+        bh = y1 - y0
+        if bh < min_size_px and h >= min_size_px:
+            pad = (min_size_px - bh) // 2
+            y0 = max(0, y0 - pad)
+            y1 = min(h, y0 + min_size_px)
+            if y1 - y0 < min_size_px:
+                y0 = max(0, y1 - min_size_px)
 
     if x1 <= x0 or y1 <= y0:
         return image, (0, 0, w, h)

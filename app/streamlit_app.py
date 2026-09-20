@@ -61,18 +61,15 @@ elif st.session_state["current_mode"] != mode:
     st.session_state["current_mode"] = mode
     st.session_state.pop("reg_result", None)
 
-# Sensor Profiles
-sensor_choice = st.sidebar.selectbox(
-    "Target Sensor Profile",
-    [
-        "Chandrayaan-2 OHRC (0.25 m/px)",
-        "Chandrayaan-2 TMC-2 (5.0 m/px)",
-        "Chandrayaan-2 IIRS (80 m/px)",
-        "LRO LROC-NAC (0.50 m/px)",
-        "LRO LROC-WAC (100 m/px)"
-    ]
-)
-
+# Sensor Profiles (Cross-Sensor Matching Support)
+st.sidebar.subheader("📡 Sensor Profiles")
+sensor_options = [
+    "Chandrayaan-2 OHRC (0.25 m/px)",
+    "Chandrayaan-2 TMC-2 (5.0 m/px)",
+    "Chandrayaan-2 IIRS (80 m/px)",
+    "LRO LROC-NAC (0.50 m/px)",
+    "LRO LROC-WAC (100 m/px)"
+]
 gsd_map = {
     "Chandrayaan-2 OHRC (0.25 m/px)": 0.25,
     "Chandrayaan-2 TMC-2 (5.0 m/px)": 5.0,
@@ -80,7 +77,37 @@ gsd_map = {
     "LRO LROC-NAC (0.50 m/px)": 0.50,
     "LRO LROC-WAC (100 m/px)": 100.0
 }
-selected_gsd = gsd_map[sensor_choice]
+
+src_sensor_choice = st.sidebar.selectbox(
+    "Source / Moving Sensor",
+    sensor_options,
+    index=0
+)
+ref_sensor_choice = st.sidebar.selectbox(
+    "Reference / Fixed Sensor",
+    sensor_options,
+    index=1 if "TMC-2" in sensor_options[1] else 0
+)
+
+selected_src_gsd = gsd_map[src_sensor_choice]
+selected_ref_gsd = gsd_map[ref_sensor_choice]
+
+with st.sidebar.expander("🌐 Selenographic Coordinates (Optional GIS Override)", expanded=False):
+    st.caption("Specify Selenographic coordinates when uploading raw PNG/JPEG images without embedded GeoTIFF or PDS4 XML tags.")
+    override_gis = st.checkbox("Enable Coordinate Override", value=False)
+    col_lat, col_lon = st.columns(2)
+    with col_lat:
+        gis_override_lat = st.number_input("Center Latitude (°)", min_value=-90.0, max_value=90.0, value=-70.0, step=0.1)
+    with col_lon:
+        gis_override_lon = st.number_input("Center Longitude (°)", min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
+    col_sg, col_rg = st.columns(2)
+    with col_sg:
+        custom_src_gsd = st.number_input("Source GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_src_gsd), step=0.25)
+    with col_rg:
+        custom_ref_gsd = st.number_input("Ref GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_ref_gsd), step=1.0)
+
+effective_src_gsd = custom_src_gsd if override_gis else selected_src_gsd
+effective_ref_gsd = custom_ref_gsd if override_gis else selected_ref_gsd
 
 # Matcher Configuration
 st.sidebar.subheader("Algorithmic Engine")
@@ -157,12 +184,19 @@ if mode == "🏆 SIH Judge Demonstration Mode":
             # Assign appropriate solar geometry metadata based on scenario
             s_az = 315.0 if "180" in scenario else 135.0
             r_az = 135.0
-            src_lunar = load_lunar_image(src_path, gsd_override=selected_gsd)
-            ref_lunar = load_lunar_image(ref_path, gsd_override=selected_gsd)
+            scen_src_gsd = 0.25 if "Multi-Scale" in scenario else effective_src_gsd
+            scen_ref_gsd = 0.50 if "Multi-Scale" in scenario else effective_ref_gsd
+            src_lunar = load_lunar_image(src_path, gsd_override=scen_src_gsd)
+            ref_lunar = load_lunar_image(ref_path, gsd_override=scen_ref_gsd)
             src_lunar.metadata.solar_azimuth_deg = s_az
             src_lunar.metadata.solar_elevation_deg = 35.0
             ref_lunar.metadata.solar_azimuth_deg = r_az
             ref_lunar.metadata.solar_elevation_deg = 40.0
+            if override_gis:
+                src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+                ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
         except Exception as e:
             st.error(f"❌ Failed to load benchmark image: {e}")
     else:
@@ -184,6 +218,13 @@ else:
             "Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
             "Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
         }
+        flight_gsd_map = {
+            "Chandrayaan-2 OHRC (Landing Site Survey, Oct 2021)": (0.25, "OHRC"),
+            "Chandrayaan-2 OHRC (Sept 2019 Vikram Site Pass)": (0.25, "OHRC"),
+            "Chandrayaan-2 IIRS (Oct 2023 Hyperspectral Infrared)": (80.0, "IIRS"),
+            "Benchmark: Baseline Control Source": (effective_src_gsd, "BASELINE"),
+            "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, "BASELINE")
+        }
         src_name = st.sidebar.selectbox("Select Source / Moving Image", list(available_flight.keys()), index=0)
         ref_name = st.sidebar.selectbox("Select Reference / Fixed Image", list(available_flight.keys()), index=1)
         
@@ -191,8 +232,15 @@ else:
         r_p = available_flight[ref_name]
         if s_p.exists() and r_p.exists():
             try:
-                src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
-                ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+                s_gsd, s_sensor = flight_gsd_map.get(src_name, (effective_src_gsd, "OHRC"))
+                r_gsd, r_sensor = flight_gsd_map.get(ref_name, (effective_ref_gsd, "IIRS"))
+                src_lunar = load_lunar_image(s_p, gsd_override=s_gsd, sensor_name=s_sensor)
+                ref_lunar = load_lunar_image(r_p, gsd_override=r_gsd, sensor_name=r_sensor)
+                if override_gis:
+                    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+                    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
             except Exception as e:
                 st.sidebar.error(f"❌ Error loading selected flight images: {e}")
                 src_lunar = None
@@ -211,8 +259,13 @@ else:
                 r_p = tmp_dir / up_ref.name
                 s_p.write_bytes(up_src.read())
                 r_p.write_bytes(up_ref.read())
-                src_lunar = load_lunar_image(s_p, gsd_override=selected_gsd)
-                ref_lunar = load_lunar_image(r_p, gsd_override=selected_gsd)
+                src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd)
+                ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd)
+                if override_gis:
+                    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+                    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+                    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
             except Exception as e:
                 st.sidebar.error(f"❌ Error loading uploaded images: {e}")
                 src_lunar = None
@@ -334,16 +387,31 @@ if "reg_result" in st.session_state:
         if gis_info:
             c_g1, c_g2, c_g3 = st.columns(3)
             c_g1.metric("Spatial Overlap", f"{gis_info.overlap_percentage:.1f}%", "Overlap Detected" if gis_info.overlap_detected else "No Overlap")
-            c_g2.metric("GSD Scale Ratio", f"{gis_info.scale_ratio:.2f}x", f"{gis_info.source_gsd}m vs {gis_info.reference_gsd}m")
+            c_g2.metric("GSD Scale Ratio", f"{gis_info.scale_ratio:.2f}x", f"Src: {gis_info.source_gsd}m vs Ref: {gis_info.reference_gsd}m")
             c_g3.metric("Sun Azimuth Delta", f"{gis_info.sun_geometry['azimuth_delta_deg']:.1f}°" if gis_info.sun_geometry['azimuth_delta_deg'] is not None else "N/A", gis_info.sun_geometry['illumination_status'])
 
             st.markdown(f"""
             * **Lunar Datum:** IAU-2000 Mean Sphere (Radius $R = 1,737.4\text{{ km}}$)
-            * **Source Selenographic Footprint:** Lon bounds `[{gis_info.source_footprint['bounds_geo'][0]:.4f}, {gis_info.source_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.source_footprint['bounds_geo'][1]:.4f}, {gis_info.source_footprint['bounds_geo'][3]:.4f}]`
-            * **Reference Selenographic Footprint:** Lon bounds `[{gis_info.reference_footprint['bounds_geo'][0]:.4f}, {gis_info.reference_footprint['bounds_geo'][2]:.4f}]`, Lat bounds `[{gis_info.reference_footprint['bounds_geo'][1]:.4f}, {gis_info.reference_footprint['bounds_geo'][3]:.4f}]`
-            * **Intersection Area:** {gis_info.common_roi.get('intersection_area_km2', 0.0)} km²
-            * **Metadata Reliability:** Sun: `{gis_info.metadata_status['sun_geometry']}` | CRS: `{gis_info.metadata_status['spatial_crs']}`
+            * **Source Selenographic Footprint:** Lon bounds `[{gis_info.source_footprint['bounds_geo'][0]:.4f}°, {gis_info.source_footprint['bounds_geo'][2]:.4f}°]`, Lat bounds `[{gis_info.source_footprint['bounds_geo'][1]:.4f}°, {gis_info.source_footprint['bounds_geo'][3]:.4f}°]` ({gis_info.source_footprint['area_km2']:.3f} km²)
+            * **Reference Selenographic Footprint:** Lon bounds `[{gis_info.reference_footprint['bounds_geo'][0]:.4f}°, {gis_info.reference_footprint['bounds_geo'][2]:.4f}°]`, Lat bounds `[{gis_info.reference_footprint['bounds_geo'][1]:.4f}°, {gis_info.reference_footprint['bounds_geo'][3]:.4f}°]` ({gis_info.reference_footprint['area_km2']:.3f} km²)
+            * **Common Physical Intersection Area:** {gis_info.common_roi.get('intersection_area_km2', 0.0):.4f} km²
+            * **Metadata Reliability:** Sun: `{gis_info.metadata_status['sun_geometry']}` | CRS: `{gis_info.metadata_status['spatial_crs']}` | GSD: `{gis_info.metadata_status['gsd']}`
             """)
+
+            s_win = gis_info.common_roi.get("src_crop_window")
+            r_win = gis_info.common_roi.get("ref_crop_window")
+            if s_win and r_win:
+                st.success("🎯 **Automated Common ROI Extraction & Multi-Scale Pyramid Active**")
+                c_w1, c_w2 = st.columns(2)
+                with c_w1:
+                    st.markdown(f"**Source ROI Window `(x, y, w, h)`:** `{s_win}`<br>Crop Dimensions: `{s_win[2]} × {s_win[3]}` px", unsafe_allow_html=True)
+                with c_w2:
+                    st.markdown(f"**Reference ROI Window `(x, y, w, h)`:** `{r_win}`<br>Crop Dimensions: `{r_win[2]} × {r_win[3]}` px", unsafe_allow_html=True)
+
+                if gis_info.scale_ratio > 1.25 or gis_info.scale_ratio < 0.8:
+                    st.info(f"📐 **Multi-Scale Gaussian Pyramid Normalization:** Disparity of `{gis_info.scale_ratio:.2f}x` between GSDs was normalized to a common matching scale prior to correspondence detection, with all tie-points projected back to full-resolution space.")
+            else:
+                st.info("Full frame coverage: Swaths share identical geographic extents.")
         else:
             st.info("GIS Pre-registration disabled or metadata not provided.")
 

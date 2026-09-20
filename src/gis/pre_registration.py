@@ -8,8 +8,10 @@ from typing import Dict, Any, Optional
 from src.io.dataset import LunarImage
 from .lunar_crs import LunarCRS
 from .footprint import (
+    create_footprint_from_bounds,
     create_footprint_from_dimensions,
     compute_footprint_intersection,
+    extract_common_roi,
     LunarFootprint
 )
 
@@ -57,15 +59,27 @@ class GISPreRegistrationAnalyzer:
         s_gsd = float(s_meta.gsd) if s_meta and s_meta.gsd else 1.0
         r_gsd = float(r_meta.gsd) if r_meta and r_meta.gsd else 1.0
 
+        # Check for geographic bounding coordinates (e.g. from GeoTIFF or PDS4 XML)
+        s_bounds_geo = s_meta.extra_attributes.get("bounds_geo") if s_meta else None
+        r_bounds_geo = r_meta.extra_attributes.get("bounds_geo") if r_meta else None
+
         # Center selenographic coordinates
         s_lat = s_meta.extra_attributes.get("center_latitude", self.default_lat) if s_meta else self.default_lat
         s_lon = s_meta.extra_attributes.get("center_longitude", self.default_lon) if s_meta else self.default_lon
         r_lat = r_meta.extra_attributes.get("center_latitude", s_lat) if r_meta else s_lat
         r_lon = r_meta.extra_attributes.get("center_longitude", s_lon) if r_meta else s_lon
 
-        # Build footprints
-        src_fp = create_footprint_from_dimensions(source.width, source.height, s_lon, s_lat, s_gsd)
-        ref_fp = create_footprint_from_dimensions(reference.width, reference.height, r_lon, r_lat, r_gsd)
+        # Build source footprint
+        if s_bounds_geo:
+            src_fp = create_footprint_from_bounds(*s_bounds_geo, gsd_m=s_gsd)
+        else:
+            src_fp = create_footprint_from_dimensions(source.width, source.height, s_lon, s_lat, s_gsd)
+
+        # Build reference footprint
+        if r_bounds_geo:
+            ref_fp = create_footprint_from_bounds(*r_bounds_geo, gsd_m=r_gsd)
+        else:
+            ref_fp = create_footprint_from_dimensions(reference.width, reference.height, r_lon, r_lat, r_gsd)
 
         # Intersection analysis
         overlap_info = compute_footprint_intersection(src_fp, ref_fp)
@@ -101,14 +115,41 @@ class GISPreRegistrationAnalyzer:
         meta_status = {
             "sun_geometry": "available" if (s_sun_az is not None and r_sun_az is not None) else "estimated",
             "camera_geometry": "available" if (s_meta.incidence_angle_deg is not None) else "unavailable",
-            "spatial_crs": "available" if "crs" in s_meta.extra_attributes else "estimated",
+            "spatial_crs": "available" if ("crs" in s_meta.extra_attributes or s_bounds_geo) else "estimated",
             "gsd": "available" if s_meta.gsd > 0 else "estimated"
         }
+
+        # Compute common ROI pixel crop windows if overlap is present
+        src_crop_window = None
+        ref_crop_window = None
+        if overlap_info["overlap_detected"]:
+            src_target_proj = overlap_info.get("source_intersection_bounds_proj") or overlap_info["intersection_bounds_proj"]
+            ref_target_proj = overlap_info["intersection_bounds_proj"]
+            if src_target_proj:
+                _, src_crop_window = extract_common_roi(
+                    source.raw_array,
+                    src_fp,
+                    src_target_proj,
+                    margin_ratio=0.05,
+                    min_size_px=64
+                )
+            if ref_target_proj:
+                _, ref_crop_window = extract_common_roi(
+                    reference.raw_array,
+                    ref_fp,
+                    ref_target_proj,
+                    margin_ratio=0.05,
+                    min_size_px=64
+                )
 
         common_roi_info = {
             "has_roi": overlap_info["overlap_detected"],
             "intersection_area_km2": overlap_info["intersection_area_km2"],
-            "bounds_proj": overlap_info["intersection_bounds_proj"]
+            "bounds_proj": overlap_info["intersection_bounds_proj"],
+            "source_bounds_proj": overlap_info.get("source_intersection_bounds_proj"),
+            "bounds_geo": overlap_info.get("intersection_bounds_geo"),
+            "src_crop_window": src_crop_window,
+            "ref_crop_window": ref_crop_window
         }
 
         return SpatialPreRegistrationResult(
