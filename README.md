@@ -185,6 +185,94 @@ Evaluated across authentic Chandrayaan-2 and LRO lunar flight benchmark scenario
 
 ---
 
+## 🖥️ Frontend UI State & Navigation Workflow
+
+![LunarRegX Frontend Application Workflow](assets/images/lunarregx_frontend_workflow.jpg)
+
+The LunarRegX frontend interface is engineered around **4 operational UI zones** ensuring seamless navigation from satellite swath ingestion to high-precision cartographic verification:
+
+```mermaid
+flowchart TD
+    subgraph SIDEBAR["ZONE 1: SIDEBAR CONFIGURATION HUB"]
+        Mode["Operation Mode Selector<br>• 🏆 SIH Judge Demonstration Mode<br>• 📁 Custom Registration & Upload"]
+        Sensors["Sensor Profile Pickers<br>• Source: OHRC (0.25m) / TMC-2 / IIRS<br>• Reference: TMC-2 (5m) / IIRS (80m)"]
+        Engines["Correspondence Engine Dropdown<br>• PHASE_STRUCTURAL (Proposed Physics)<br>• LOFTR (Deep Transformer)<br>• SIFT / AKAZE / RIFT2 / CNN"]
+        Overrides["🛰️ GIS Coordinate Override (Optional)<br>• Center Latitude / Longitude (°)<br>• Custom Source / Reference GSD (m)"]
+        ExecBtn["⚡ EXECUTE REGISTRATION PIPELINE<br>(Triggers spinner & backend worker)"]
+        
+        Mode --> Sensors --> Engines --> Overrides --> ExecBtn
+    end
+
+    subgraph INGEST_VIEW["ZONE 2: DATA PREVIEW CANVAS"]
+        direction LR
+        DemoView["Scenario Selector (Demo Mode)<br>• Baseline Control<br>• 180° Shadow Reversal<br>• Multi-Scale (0.25m vs 0.5m)<br>• Oblique Viewpoint Shear<br>• Polar Crater Shadows"]
+        UploadView["Upload Canvas (Custom Mode)<br>• Preloaded Flight Swaths (ISRO PRADAN)<br>• File Uploader (GeoTIFF / PNG / XML)"]
+        DualPreview["Side-by-Side Dual Preview<br>• Source Image (Moving)<br>• Reference Image (Fixed)"]
+        
+        DemoView --> DualPreview
+        UploadView --> DualPreview
+    end
+
+    subgraph KPI_BANNER["ZONE 3: EXECUTIVE PERFORMANCE DASHBOARD"]
+        direction LR
+        StatusBanner["Dynamic Status Banner<br>🟢 SUCCESS (Model Verified) | 🟡 WARNING | 🔴 FAILURE"]
+        KPIs["6 Real-Time Cartographic Metric Cards<br>• Inlier Count (e.g. 15 / 64)<br>• Inlier Ratio (%)<br>• Total 2D RMSE (px)<br>• Physical Error (meters)<br>• Spatial Coverage (%)<br>• Total Runtime (sec)"]
+        StatusBanner --> KPIs
+    end
+
+    subgraph TABS["ZONE 4: 11-STAGE INTERACTIVE DEMONSTRATION TABS"]
+        direction TB
+        T1["1. GIS & Footprint: Overlap %, Scale Ratio, Crop Windows, Sun Azimuth Delta"]
+        T2["2. Sensor Encoding: Modality-tailored structural maps (OHRC / TMC-2 / IIRS)"]
+        T3["3. Illumination Phase: 2D Log-Gabor maximum moment & shadow reliability mask"]
+        T4["4. Correspondences: Dual-canvas with green inliers & red rejected outliers"]
+        T5["5. Outlier Rejection: RANSAC residual distribution & inlier survival curve"]
+        T6["6. Spatial ANMS: 10x10 grid coverage overlay & spatial density heatmap"]
+        T7["7. Sub-Pixel Refinement: 2D continuous paraboloid displacement quiver vectors"]
+        T8["8. Model Estimation: Transformation matrix, SVD condition number (κ)"]
+        T9["9. Registered Warping: Bicubic warped source aligned to reference coordinate frame"]
+        T10["10. Quality Inspection: Interactive split-screen Checkerboard & Difference map"]
+        T11["11. Export Artifacts: Download GeoTIFF, QGIS GeoJSON, CSV points, Metrics JSON"]
+
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8 --> T9 --> T10 --> T11
+    end
+
+    %% State Transitions
+    Mode -.->|Controls View| INGEST_VIEW
+    ExecBtn ==>|Launches Pipeline| KPI_BANNER
+    KPI_BANNER ==>|Populates Results| TABS
+
+    style SIDEBAR fill:#161b22,stroke:#58a6ff,stroke-width:2px,color:#fff
+    style INGEST_VIEW fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#fff
+    style KPI_BANNER fill:#1f242c,stroke:#f0883e,stroke-width:2px,color:#fff
+    style TABS fill:#161b22,stroke:#3fb950,stroke-width:2px,color:#fff
+```
+
+### 🗺️ Operational UI Navigation Flow
+
+1. **Zone 1: Sidebar Configuration Hub:**
+   - **Mode Selection:** Toggle between **SIH Judge Demonstration Mode** (pre-configured lunar challenge benchmarks) and **Custom Registration & Upload** (for PRADAN GeoTIFF/PDS4 swaths).
+   - **Sensor Parameterization:** Select Source and Reference modalities (OHRC $0.25\text{ m}$, TMC-2 $5.0\text{ m}$, IIRS $80\text{ m}$).
+   - **Algorithmic Engine:** Select from 6 registered engines (Phase-Structural, LoFTR, RIFT2, SIFT, AKAZE, LunarNet CNN).
+   - **GIS Geodetic Overrides:** Optional manual overrides for bounding boxes, GSD, and center coordinates.
+   - **Execution Trigger:** Launches backend multi-scale pyramid registration with progress feedback.
+
+2. **Zone 2: Data Preview Canvas:**
+   - Dynamically adapts based on operation mode: presents verified benchmark scenarios or interactive file dropzones.
+   - Renders side-by-side synchronized viewport cards with metadata badges (resolution, solar azimuth, bit depth).
+
+3. **Zone 3: Executive Performance Dashboard:**
+   - Color-coded status badge (**SUCCESS**, **WARNING**, **FAILURE**) based on mathematical stability criteria ($\kappa(H) \le 2000$, Inlier Ratio $\ge 60\%$).
+   - 6 instant real-time telemetry cards displaying: **Inlier Count**, **Inlier Ratio**, **2D Pixel RMSE**, **Physical Ground Error**, **Spatial Grid Coverage**, and **Compute Runtime**.
+
+4. **Zone 4: 11-Stage Interactive Walkthrough Tabs:**
+   - Granular step-by-step verification tabs exposing each mathematical transformation:
+     - **Tabs 1–3:** Geodetic footprint overlap, multi-modal contrast normalization, and illumination-invariant Log-Gabor phase moments.
+     - **Tabs 4–7:** Feature tie-point canvas, RANSAC residual distribution, ANMS spatial coverage grid, and continuous 2D parabolic sub-pixel quiver vectors.
+     - **Tabs 8–11:** SVD stability condition checks, bicubic warped canvas, interactive split-screen checkerboard overlay, and single-click GIS artifact export (GeoTIFF, GeoJSON, CSV, JSON).
+
+---
+
 ## 🏆 SIH Judge Demonstration Mode
 
 The web application includes a dedicated **11-Stage Interactive Demonstration Mode** designed specifically for Smart India Hackathon jury reviews:
