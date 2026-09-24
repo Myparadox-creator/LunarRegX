@@ -187,8 +187,6 @@ Evaluated across authentic Chandrayaan-2 and LRO lunar flight benchmark scenario
 
 ## 🖥️ Frontend UI State & Navigation Workflow
 
-![LunarRegX Frontend Application Workflow](assets/images/lunarregx_frontend_workflow.jpg)
-
 The LunarRegX frontend interface is engineered around **4 operational UI zones** ensuring seamless navigation from satellite swath ingestion to high-precision cartographic verification:
 
 ```mermaid
