@@ -170,6 +170,13 @@ if mode == "🏆 SIH Judge Demonstration Mode":
         ]
     )
 
+    if "current_scenario" not in st.session_state:
+        st.session_state["current_scenario"] = scenario
+    elif st.session_state["current_scenario"] != scenario:
+        st.session_state["current_scenario"] = scenario
+        st.session_state["swap_roles"] = False
+        st.session_state.pop("reg_result", None)
+
     pair_files = {
         "Scenario 1: Baseline Control (Low illumination delta)": (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"),
         "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)": (samples_dir / "pair2_illumination_src.png", samples_dir / "pair2_illumination_ref.png"),
@@ -197,6 +204,11 @@ if mode == "🏆 SIH Judge Demonstration Mode":
                 src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
                 ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
                 ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+
+            if st.sidebar.button("⇄ Swap Source ↔ Reference", key="btn_swap_demo", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+                st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
+                st.session_state.pop("reg_result", None)
+                st.rerun()
         except Exception as e:
             st.error(f"❌ Failed to load benchmark image: {e}")
     else:
@@ -273,6 +285,19 @@ else:
         elif up_src or up_ref:
             st.sidebar.info("ℹ️ Uploaded 1 of 2 images. Please upload the matching pair to proceed.")
 
+    if src_lunar is not None and ref_lunar is not None:
+        if st.sidebar.button("⇄ Swap Source ↔ Reference", key="btn_swap_custom", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+            st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
+            st.session_state.pop("reg_result", None)
+            st.rerun()
+
+# Apply role swapping if active
+if "swap_roles" not in st.session_state:
+    st.session_state["swap_roles"] = False
+
+if st.session_state.get("swap_roles", False) and src_lunar is not None and ref_lunar is not None:
+    src_lunar, ref_lunar = ref_lunar, src_lunar
+
 # Guidance screen when in Custom Upload mode and images are not yet provided
 if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lunar is None):
     if "reg_result" not in st.session_state:
@@ -299,11 +324,40 @@ if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lun
 
 # Registration Execution Button & Input Previews
 if src_lunar is not None and ref_lunar is not None:
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.image(src_lunar.display_8bit, caption=f"Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
-    with col_b:
-        st.image(ref_lunar.display_8bit, caption=f"Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
+    p_header_col1, p_header_col2 = st.columns([3, 1])
+    with p_header_col1:
+        preview_layout = st.radio(
+            "Preview Display Mode:",
+            ["↔️ Side-by-Side Dual View", "👁️ Quick Blink / Swap View"],
+            horizontal=True,
+            key="preview_display_layout"
+        )
+    with p_header_col2:
+        if st.button("⇄ Swap Roles", key="btn_swap_main_preview", help="Swap Source (Moving) and Reference (Fixed) roles for registration", use_container_width=True):
+            st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
+            st.session_state.pop("reg_result", None)
+            st.rerun()
+
+    if st.session_state.get("swap_roles", False):
+        st.info("🔄 **Roles Swapped:** The Reference image is now set as the Moving Source (to be registered/warped), and the Source is set as the Fixed Reference frame.")
+
+    if preview_layout == "↔️ Side-by-Side Dual View":
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.image(src_lunar.display_8bit, caption=f"Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
+        with col_b:
+            st.image(ref_lunar.display_8bit, caption=f"Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
+    else:
+        blink_choice = st.radio(
+            "Active Image in Viewport (Click to toggle between images):",
+            ["📷 Source / Moving Image", "🎯 Reference / Fixed Image"],
+            horizontal=True,
+            key="blink_choice_preview"
+        )
+        if "Source" in blink_choice:
+            st.image(src_lunar.display_8bit, caption=f"📷 Viewing: Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
+        else:
+            st.image(ref_lunar.display_8bit, caption=f"🎯 Viewing: Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
 
     if st.button("🚀 EXECUTE REGISTRATION PIPELINE", type="primary", use_container_width=True):
         with st.spinner("Executing GIS-assisted multi-modal registration pipeline..."):
@@ -478,6 +532,20 @@ if "reg_result" in st.session_state:
         st.write("Inspect continuous crater rim alignment across checkerboard boundaries to visually verify sub-pixel seam continuity.")
         st.image(res.vis_checkerboard, caption="Checkerboard Verification: Seam alignment between Registered Source & Reference", use_container_width=True)
         st.image(res.vis_diff, caption="Absolute Difference Heatmap (Dark = Perfect Alignment | Bright = Residuals)", use_container_width=True)
+
+        st.markdown("---")
+        st.write("#### 👁️ Interactive Blink / Swap Verification")
+        st.caption("Toggle between the registered warped source and reference image in the exact same viewport to visually confirm feature alignment.")
+        tab10_blink = st.radio(
+            "Toggle Registered View:",
+            ["🚀 Registered Warped Source", "🎯 Fixed Reference Image"],
+            horizontal=True,
+            key="tab10_blink_comparator"
+        )
+        if "Registered" in tab10_blink:
+            st.image(res.warped_image, caption="Registered Source Image (Warped into Reference Frame)", use_container_width=True)
+        else:
+            st.image(res.reference_image.display_8bit, caption="Fixed Reference Image (Ground Truth Frame)", use_container_width=True)
 
     with tabs[10]:
         st.write("**Stage 11: Exportable SIH Artifacts**")
