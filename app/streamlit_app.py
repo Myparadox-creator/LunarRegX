@@ -29,14 +29,21 @@ from src.gis.pre_registration import GISPreRegistrationAnalyzer
 
 st.set_page_config(
     page_title="LunarRegX | GIS-Assisted Lunar Image Registration",
-    page_icon="🌕",
+    page_icon="🌌",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # Custom Lunar Styling
 st.markdown("""
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
+    .material-symbols-outlined {
+        vertical-align: -3px;
+        font-size: 1.2rem;
+        line-height: 1;
+        margin-right: 5px;
+    }
     .main { background-color: #0b0e14; color: #e6edf3; }
     .stMetric { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
     .status-box-success { background-color: #1f6feb22; border: 1px solid #238636; border-radius: 8px; padding: 15px; }
@@ -46,13 +53,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🌕 Robust GIS-Assisted Multi-Modal Lunar Image Registration")
+st.title(":material/public: Robust GIS-Assisted Multi-Modal Lunar Image Registration")
 st.caption("SIH 2026 Prototype (Problem ID 26166) | Chandrayaan-2 (OHRC, TMC-2, IIRS) ↔ Lunar Reference (LROC NAC/WAC)")
 
 # Sidebar Controls
-st.sidebar.header("⚙️ System Configuration")
+st.sidebar.header(":material/settings: System Configuration")
 
-mode = st.sidebar.radio("Operation Mode", ["🏆 SIH Judge Demonstration Mode", "🔬 Custom Registration & Upload"])
+mode = st.sidebar.radio("Operation Mode", [":material/verified: SIH Judge Demonstration Mode", ":material/tune: Custom Registration & Upload"])
 
 # Detect mode switch to prevent stale session state collisions
 if "current_mode" not in st.session_state:
@@ -62,7 +69,7 @@ elif st.session_state["current_mode"] != mode:
     st.session_state.pop("reg_result", None)
 
 # Sensor Profiles (Cross-Sensor Matching Support)
-st.sidebar.subheader("📡 Sensor Profiles")
+st.sidebar.subheader(":material/satellite_alt: Sensor Profiles")
 sensor_options = [
     "Chandrayaan-2 OHRC (0.25 m/px)",
     "Chandrayaan-2 TMC-2 (5.0 m/px)",
@@ -140,9 +147,9 @@ else:
 if engine_key == "LOFTR":
     loftr_ckpt = ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt"
     if loftr_ckpt.exists():
-        st.sidebar.caption("🟢 **LoFTR Status:** Lunar Fine-Tuned Checkpoint Active (`best.ckpt`)")
+        st.sidebar.caption(":material/check_circle: **LoFTR Status:** Lunar Fine-Tuned Checkpoint Active (`best.ckpt`)")
     else:
-        st.sidebar.caption("🟡 **LoFTR Status:** Pretrained Outdoor Fallback")
+        st.sidebar.caption(":material/warning: **LoFTR Status:** Pretrained Outdoor Fallback")
 
 model_choice = st.sidebar.selectbox("Transformation Model", ["AUTO (Stability-Guided)", "SIMILARITY (4-DOF)", "AFFINE (6-DOF)", "HOMOGRAPHY (8-DOF)"], index=0)
 model_key = "AUTO" if "AUTO" in model_choice else ("SIMILARITY" if "SIMILARITY" in model_choice else ("AFFINE" if "AFFINE" in model_choice else "HOMOGRAPHY"))
@@ -157,7 +164,7 @@ samples_dir = ROOT_DIR / "data" / "samples"
 src_lunar = None
 ref_lunar = None
 
-if mode == "🏆 SIH Judge Demonstration Mode":
+if "SIH Judge Demonstration Mode" in mode:
     st.sidebar.subheader("Select Prepared Lunar Scenario")
     scenario = st.sidebar.selectbox(
         "Demonstration Scenarios",
@@ -205,24 +212,24 @@ if mode == "🏆 SIH Judge Demonstration Mode":
                 ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
                 ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
 
-            if st.sidebar.button("⇄ Swap Source ↔ Reference", key="btn_swap_demo", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+            if st.sidebar.button("Swap Source ↔ Reference", key="btn_swap_demo", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
                 st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
                 st.session_state.pop("reg_result", None)
                 st.rerun()
         except Exception as e:
-            st.error(f"❌ Failed to load benchmark image: {e}")
+            st.error(f"Failed to load benchmark image: {e}", icon=":material/error:")
     else:
-        st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.")
+        st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.", icon=":material/warning:")
 
 else:
-    st.sidebar.subheader("Select or Upload Lunar Images")
+    st.sidebar.subheader(":material/layers: Select or Upload Lunar Images")
     custom_source = st.sidebar.radio(
         "Image Selection Method",
-        ["📂 Ingested Flight Images (Ready to Use)", "📤 Upload Files from Computer"],
+        [":material/folder_open: Ingested Flight Images (Ready to Use)", ":material/upload_file: Upload Files from Computer"],
         index=0
     )
 
-    if custom_source == "📂 Ingested Flight Images (Ready to Use)":
+    if "Ingested Flight Images" in custom_source:
         available_flight = {
             "Chandrayaan-2 OHRC (Landing Site Survey, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
             "Chandrayaan-2 OHRC (Sept 2019 Vikram Site Pass)": samples_dir / "real_ch2_ohrc_sept2019_vikram.png",
@@ -254,12 +261,12 @@ else:
                     ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
                     ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
             except Exception as e:
-                st.sidebar.error(f"❌ Error loading selected flight images: {e}")
+                st.sidebar.error(f"Error loading selected flight images: {e}", icon=":material/error:")
                 src_lunar = None
                 ref_lunar = None
     else:
         st.sidebar.caption("Supported: 8/12/16-bit GeoTIFF, TIFF, PNG, JPEG")
-        st.sidebar.caption("💡 Real flight PNGs are also saved in `D:\\Downloads2\\Lunar_Flight_Images\\`")
+        st.sidebar.caption("Real flight PNGs are stored in data repositories.")
         up_src = st.sidebar.file_uploader("Upload Source / Moving Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
         up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
 
@@ -279,14 +286,14 @@ else:
                     ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
                     ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
             except Exception as e:
-                st.sidebar.error(f"❌ Error loading uploaded images: {e}")
+                st.sidebar.error(f"Error loading uploaded images: {e}", icon=":material/error:")
                 src_lunar = None
                 ref_lunar = None
         elif up_src or up_ref:
-            st.sidebar.info("ℹ️ Uploaded 1 of 2 images. Please upload the matching pair to proceed.")
+            st.sidebar.info("Uploaded 1 of 2 images. Please upload the matching pair to proceed.", icon=":material/info:")
 
     if src_lunar is not None and ref_lunar is not None:
-        if st.sidebar.button("⇄ Swap Source ↔ Reference", key="btn_swap_custom", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+        if st.sidebar.button("Swap Source ↔ Reference", key="btn_swap_custom", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
             st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
             st.session_state.pop("reg_result", None)
             st.rerun()
@@ -299,14 +306,14 @@ if st.session_state.get("swap_roles", False) and src_lunar is not None and ref_l
     src_lunar, ref_lunar = ref_lunar, src_lunar
 
 # Guidance screen when in Custom Upload mode and images are not yet provided
-if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lunar is None):
+if "Custom Registration & Upload" in mode and (src_lunar is None or ref_lunar is None):
     if "reg_result" not in st.session_state:
-        st.info("👈 **Upload both a Source / Moving image and a Reference / Fixed image in the sidebar to begin custom registration.**")
+        st.info("Upload both a Source / Moving image and a Reference / Fixed image in the sidebar to begin custom registration.", icon=":material/info:")
         
         c_g1, c_g2 = st.columns(2)
         with c_g1:
             st.markdown("""
-            ### 🛰️ Supported Lunar Sensors
+            ### :material/satellite_alt: Supported Lunar Sensors
             * **Chandrayaan-2 OHRC:** Ultra-high resolution ($0.25\text{ m/px}$)
             * **Chandrayaan-2 TMC-2:** Stereo elevation mapping ($5.0\text{ m/px}$)
             * **Chandrayaan-2 IIRS:** Hyperspectral mineralogy ($80\text{ m/px}$)
@@ -315,7 +322,7 @@ if mode == "🔬 Custom Registration & Upload" and (src_lunar is None or ref_lun
             """)
         with c_g2:
             st.markdown(r"""
-            ### 📐 Recommended Input Specifications
+            ### :material/straighten: Recommended Input Specifications
             * **File Formats:** GeoTIFF, TIFF, PNG, JPEG, NPY
             * **Radiometric Depths:** 8-bit, 12-bit raw, 16-bit, 32-bit float
             * **GIS Coordinate System:** IAU-2000 Lunar Datum ($R = 1737.4\text{ km}$)
@@ -328,20 +335,20 @@ if src_lunar is not None and ref_lunar is not None:
     with p_header_col1:
         preview_layout = st.radio(
             "Preview Display Mode:",
-            ["↔️ Side-by-Side Dual View", "👁️ Quick Blink / Swap View"],
+            [":material/splitscreen: Side-by-Side Dual View", ":material/visibility: Quick Blink / Swap View"],
             horizontal=True,
             key="preview_display_layout"
         )
     with p_header_col2:
-        if st.button("⇄ Swap Roles", key="btn_swap_main_preview", help="Swap Source (Moving) and Reference (Fixed) roles for registration", use_container_width=True):
+        if st.button("Swap Roles", key="btn_swap_main_preview", icon=":material/swap_horiz:", help="Swap Source (Moving) and Reference (Fixed) roles for registration", use_container_width=True):
             st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
             st.session_state.pop("reg_result", None)
             st.rerun()
 
     if st.session_state.get("swap_roles", False):
-        st.info("🔄 **Roles Swapped:** The Reference image is now set as the Moving Source (to be registered/warped), and the Source is set as the Fixed Reference frame.")
+        st.info("**Roles Swapped:** The Reference image is now set as the Moving Source (to be registered/warped), and the Source is set as the Fixed Reference frame.", icon=":material/swap_horiz:")
 
-    if preview_layout == "↔️ Side-by-Side Dual View":
+    if "Side-by-Side" in preview_layout:
         col_a, col_b = st.columns(2)
         with col_a:
             st.image(src_lunar.display_8bit, caption=f"Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
@@ -350,16 +357,16 @@ if src_lunar is not None and ref_lunar is not None:
     else:
         blink_choice = st.radio(
             "Active Image in Viewport (Click to toggle between images):",
-            ["📷 Source / Moving Image", "🎯 Reference / Fixed Image"],
+            [":material/photo_camera: Source / Moving Image", ":material/track_changes: Reference / Fixed Image"],
             horizontal=True,
             key="blink_choice_preview"
         )
         if "Source" in blink_choice:
-            st.image(src_lunar.display_8bit, caption=f"📷 Viewing: Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
+            st.image(src_lunar.display_8bit, caption=f"Viewing: Source / Moving Image ({src_lunar.width}x{src_lunar.height}) | {src_lunar.metadata.bit_depth}-bit", use_container_width=True)
         else:
-            st.image(ref_lunar.display_8bit, caption=f"🎯 Viewing: Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
+            st.image(ref_lunar.display_8bit, caption=f"Viewing: Reference / Fixed Image ({ref_lunar.width}x{ref_lunar.height}) | {ref_lunar.metadata.bit_depth}-bit", use_container_width=True)
 
-    if st.button("🚀 EXECUTE REGISTRATION PIPELINE", type="primary", use_container_width=True):
+    if st.button("EXECUTE REGISTRATION PIPELINE", type="primary", icon=":material/rocket_launch:", use_container_width=True):
         with st.spinner("Executing GIS-assisted multi-modal registration pipeline..."):
             try:
                 cfg = RegistrationPipelineConfig(
@@ -375,9 +382,9 @@ if src_lunar is not None and ref_lunar is not None:
                 st.session_state["reg_result"] = res
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Registration could not be completed: {str(e)}")
+                st.error(f"Registration could not be completed: {str(e)}", icon=":material/error:")
                 st.markdown("""
-                > **💡 Troubleshooting Tips:**
+                > **Troubleshooting Guidance:**
                 > 1. Ensure both lunar images cover overlapping geographic terrain.
                 > 2. For severe illumination or shadow flips, ensure **PHASE_STRUCTURAL (Proposed)** is selected.
                 > 3. If images have large scale differences, ensure the matching sensor profile GSD is selected.
@@ -394,19 +401,19 @@ if "reg_result" in st.session_state:
     st.markdown("---")
     c_head1, c_head2 = st.columns([5, 1])
     with c_head1:
-        st.subheader("📊 Registration Performance Dashboard")
+        st.subheader(":material/analytics: Registration Performance Dashboard")
     with c_head2:
-        if st.button("🔄 Clear Results", use_container_width=True):
+        if st.button("Clear Results", icon=":material/refresh:", use_container_width=True):
             st.session_state.pop("reg_result", None)
             st.rerun()
 
     # Status Banner
     if m.status == "SUCCESS":
-        st.markdown(f'<div class="status-box-success"><b>✅ REGISTRATION STATUS: SUCCESS</b><br>Model: {m.model_name} | {m.diagnostics[0]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="status-box-success"><span class="material-symbols-outlined" style="color:#3fb950;font-size:20px;vertical-align:middle;">verified</span> <b>REGISTRATION STATUS: SUCCESS</b><br>Model: {m.model_name} | {m.diagnostics[0]}</div>', unsafe_allow_html=True)
     elif m.status == "WARNING":
-        st.markdown(f'<div class="status-box-warn"><b>⚠️ REGISTRATION STATUS: WARNING</b><br>{"<br>".join(m.diagnostics)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="status-box-warn"><span class="material-symbols-outlined" style="color:#d29922;font-size:20px;vertical-align:middle;">warning</span> <b>REGISTRATION STATUS: WARNING</b><br>{"<br>".join(m.diagnostics)}</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="status-box-fail"><b>❌ REGISTRATION STATUS: FAILURE</b><br>{"<br>".join(m.diagnostics)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="status-box-fail"><span class="material-symbols-outlined" style="color:#f85149;font-size:20px;vertical-align:middle;">cancel</span> <b>REGISTRATION STATUS: FAILURE</b><br>{"<br>".join(m.diagnostics)}</div>', unsafe_allow_html=True)
 
     st.write("")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -419,7 +426,7 @@ if "reg_result" in st.session_state:
 
     # SIH Judge 11-Step Tour Tabs
     st.markdown("---")
-    st.subheader("🏆 SIH Judge Demonstration Walkthrough (11 Verification Stages)")
+    st.subheader(":material/fact_check: SIH Judge Demonstration Walkthrough (11 Verification Stages)")
 
     tab_titles = [
         "1. GIS & Footprint",
@@ -455,7 +462,7 @@ if "reg_result" in st.session_state:
             s_win = gis_info.common_roi.get("src_crop_window")
             r_win = gis_info.common_roi.get("ref_crop_window")
             if s_win and r_win:
-                st.success("🎯 **Automated Common ROI Extraction & Multi-Scale Pyramid Active**")
+                st.success("**Automated Common ROI Extraction & Multi-Scale Pyramid Active**", icon=":material/check_circle:")
                 c_w1, c_w2 = st.columns(2)
                 with c_w1:
                     st.markdown(f"**Source ROI Window `(x, y, w, h)`:** `{s_win}`<br>Crop Dimensions: `{s_win[2]} × {s_win[3]}` px", unsafe_allow_html=True)
@@ -463,11 +470,11 @@ if "reg_result" in st.session_state:
                     st.markdown(f"**Reference ROI Window `(x, y, w, h)`:** `{r_win}`<br>Crop Dimensions: `{r_win[2]} × {r_win[3]}` px", unsafe_allow_html=True)
 
                 if gis_info.scale_ratio > 1.25 or gis_info.scale_ratio < 0.8:
-                    st.info(f"📐 **Multi-Scale Gaussian Pyramid Normalization:** Disparity of `{gis_info.scale_ratio:.2f}x` between GSDs was normalized to a common matching scale prior to correspondence detection, with all tie-points projected back to full-resolution space.")
+                    st.info(f"**Multi-Scale Gaussian Pyramid Normalization:** Disparity of `{gis_info.scale_ratio:.2f}x` between GSDs was normalized to a common matching scale prior to correspondence detection, with all tie-points projected back to full-resolution space.", icon=":material/tune:")
             else:
-                st.info("Full frame coverage: Swaths share identical geographic extents.")
+                st.info("Full frame coverage: Swaths share identical geographic extents.", icon=":material/info:")
         else:
-            st.info("GIS Pre-registration disabled or metadata not provided.")
+            st.info("GIS Pre-registration disabled or metadata not provided.", icon=":material/info:")
 
     with tabs[1]:
         st.write("**Stage 2: Sensor-Aware Multimodal Processing**")
@@ -496,9 +503,9 @@ if "reg_result" in st.session_state:
         st.write(f"Identified {m.total_candidates} candidate matches across the scene using {feature_method}.")
         if res.matcher_info and "LOFTR" in str(res.matcher_info.get("active_backend", "")):
             if res.matcher_info.get("checkpoint_loaded"):
-                st.info(f"🛰️ **Active LoFTR Weights:** Lunar Fine-Tuned Checkpoint (`{res.matcher_info.get('checkpoint_path')}`) | Supervised on calibrated lunar geometry.")
+                st.info(f"**Active LoFTR Weights:** Lunar Fine-Tuned Checkpoint (`{res.matcher_info.get('checkpoint_path')}`) | Supervised on calibrated lunar geometry.", icon=":material/verified:")
             else:
-                st.warning("⚠️ **Active LoFTR Weights:** Pretrained Outdoor Fallback | No fine-tuned lunar checkpoint found.")
+                st.warning("**Active LoFTR Weights:** Pretrained Outdoor Fallback | No fine-tuned lunar checkpoint found.", icon=":material/warning:")
         st.image(res.vis_matches, caption="Candidate Matches (Green: Inliers | Red: Filtered Outliers)", use_container_width=True)
 
     with tabs[4]:
@@ -534,11 +541,11 @@ if "reg_result" in st.session_state:
         st.image(res.vis_diff, caption="Absolute Difference Heatmap (Dark = Perfect Alignment | Bright = Residuals)", use_container_width=True)
 
         st.markdown("---")
-        st.write("#### 👁️ Interactive Blink / Swap Verification")
+        st.write("#### :material/visibility: Interactive Blink / Swap Verification")
         st.caption("Toggle between the registered warped source and reference image in the exact same viewport to visually confirm feature alignment.")
         tab10_blink = st.radio(
             "Toggle Registered View:",
-            ["🚀 Registered Warped Source", "🎯 Fixed Reference Image"],
+            [":material/rocket_launch: Registered Warped Source", ":material/track_changes: Fixed Reference Image"],
             horizontal=True,
             key="tab10_blink_comparator"
         )
@@ -557,8 +564,8 @@ if "reg_result" in st.session_state:
         json_bytes = res.metrics.to_json().encode('utf-8')
 
         c_d1, c_d2, c_d3 = st.columns(3)
-        c_d1.download_button("📥 Control Points (CSV)", csv_bytes, file_name="lunar_control_points.csv", mime="text/csv")
-        c_d2.download_button("📥 Control Points (GeoJSON)", geojson_bytes, file_name="lunar_control_points.geojson", mime="application/geo+json")
-        c_d3.download_button("📥 Registration Metrics (JSON)", json_bytes, file_name="registration_metrics.json", mime="application/json")
+        c_d1.download_button("Control Points (CSV)", csv_bytes, file_name="lunar_control_points.csv", mime="text/csv", icon=":material/table_view:")
+        c_d2.download_button("Control Points (GeoJSON)", geojson_bytes, file_name="lunar_control_points.geojson", mime="application/geo+json", icon=":material/map:")
+        c_d3.download_button("Registration Metrics (JSON)", json_bytes, file_name="registration_metrics.json", mime="application/json", icon=":material/analytics:")
 
         st.dataframe(df.head(10), use_container_width=True)
