@@ -133,24 +133,59 @@ gsd_map = {
     "LRO LROC-NAC (0.50 m/px)": 0.50,
     "LRO LROC-WAC (100 m/px)": 100.0
 }
-selected_src_gsd = 0.25
-selected_ref_gsd = 5.0
+sensor_code_map = {
+    "Chandrayaan-2 OHRC (0.25 m/px)": "OHRC",
+    "Chandrayaan-2 TMC-2 (5.0 m/px)": "TMC2",
+    "Chandrayaan-2 IIRS (80 m/px)": "IIRS",
+    "LRO LROC-NAC (0.50 m/px)": "LROC_NAC",
+    "LRO LROC-WAC (100 m/px)": "LROC_WAC"
+}
+
+# -------------------------------------------------------------
+# CARD 2: SENSOR PROFILES (GLOBAL FOR BOTH DEMO & CUSTOM)
+# -------------------------------------------------------------
+with st.sidebar.container(border=True):
+    st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">satellite_alt</span> Sensor Profiles</div>', unsafe_allow_html=True)
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        src_sensor_choice = st.selectbox(
+            "Source (Moving)",
+            sensor_options,
+            index=0,
+            key="global_src_sensor"
+        )
+    with col_s2:
+        ref_sensor_choice = st.selectbox(
+            "Reference (Fixed)",
+            sensor_options,
+            index=0,
+            key="global_ref_sensor"
+        )
+
+    selected_src_gsd = gsd_map[src_sensor_choice]
+    selected_ref_gsd = gsd_map[ref_sensor_choice]
+    selected_src_code = sensor_code_map[src_sensor_choice]
+    selected_ref_code = sensor_code_map[ref_sensor_choice]
+
 override_gis = False
 gis_override_lat = -70.0
 gis_override_lon = 0.0
 custom_src_gsd = 0.25
 custom_ref_gsd = 5.0
 
+effective_src_gsd = selected_src_gsd
+effective_ref_gsd = selected_ref_gsd
+
 samples_dir = ROOT_DIR / "data" / "samples"
 src_lunar = None
 ref_lunar = None
 
 # -------------------------------------------------------------
-# CARD 2: MISSION DATA / SCENARIO SELECTOR
+# CARD 3: MISSION DATA / SCENARIO SELECTOR
 # -------------------------------------------------------------
 if "SIH Judge Demonstration Mode" in mode:
     with st.sidebar.container(border=True):
-        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">satellite_alt</span> Prepared Flight Scenario</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">flight_takeoff</span> Prepared Flight Scenario</div>', unsafe_allow_html=True)
         scenario = st.selectbox(
             "Demonstration Scenarios",
             [
@@ -171,11 +206,11 @@ if "SIH Judge Demonstration Mode" in mode:
             st.session_state.pop("reg_result", None)
 
         scen_info = {
-            "Scenario 1": ("Baseline (Low ΔAz)", "OHRC 0.25m ↔ LROC 0.25m", "Standard Control"),
-            "Scenario 2": ("180° Shadow Reversal", "OHRC 0.25m ↔ OHRC 0.25m", "Illumination Inversion"),
-            "Scenario 3": ("Multi-Scale Challenge", "OHRC 0.25m ↔ LROC 0.50m", "2× GSD Pyramid"),
-            "Scenario 4": ("Oblique Viewpoint", "OHRC 0.25m ↔ TMC-2 5.0m", "Affine Perspective"),
-            "Scenario 5": ("Polar Crater Relief", "OHRC 0.25m ↔ LROC 0.50m", "Deep Permanent Shadow")
+            "Scenario 1": ("Baseline Control", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Standard Overlap"),
+            "Scenario 2": ("180° Shadow Reversal", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Illumination Inversion"),
+            "Scenario 3": ("Multi-Scale Challenge", "OHRC 0.25m ↔ LROC 0.50m", "2× GSD Scale Ratio"),
+            "Scenario 4": ("Oblique Viewpoint", f"{selected_src_code} ↔ {selected_ref_code}", "Affine Perspective"),
+            "Scenario 5": ("Polar Crater Relief", f"{selected_src_code} ↔ {selected_ref_code}", "Deep Permanent Shadow")
         }
         for k, (name, sensors, tag) in scen_info.items():
             if k in scenario:
@@ -196,10 +231,16 @@ if "SIH Judge Demonstration Mode" in mode:
             try:
                 s_az = 315.0 if "180" in scenario else 135.0
                 r_az = 135.0
-                scen_src_gsd = 0.25 if "Multi-Scale" in scenario else selected_src_gsd
-                scen_ref_gsd = 0.50 if "Multi-Scale" in scenario else selected_ref_gsd
-                src_lunar = load_lunar_image(src_path, gsd_override=scen_src_gsd)
-                ref_lunar = load_lunar_image(ref_path, gsd_override=scen_ref_gsd)
+
+                if "Multi-Scale" in scenario:
+                    scen_src_gsd = 0.25
+                    scen_ref_gsd = 0.50
+                else:
+                    scen_src_gsd = selected_src_gsd
+                    scen_ref_gsd = selected_ref_gsd
+
+                src_lunar = load_lunar_image(src_path, gsd_override=scen_src_gsd, sensor_name=selected_src_code)
+                ref_lunar = load_lunar_image(ref_path, gsd_override=scen_ref_gsd, sensor_name=selected_ref_code)
                 src_lunar.metadata.solar_azimuth_deg = s_az
                 src_lunar.metadata.solar_elevation_deg = 35.0
                 ref_lunar.metadata.solar_azimuth_deg = r_az
@@ -217,17 +258,6 @@ if "SIH Judge Demonstration Mode" in mode:
 else:
     # Custom Registration & Upload Mode
     with st.sidebar.container(border=True):
-        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">satellite_alt</span> Sensor Profiles</div>', unsafe_allow_html=True)
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            src_sensor_choice = st.selectbox("Source (Moving)", sensor_options, index=0)
-        with col_s2:
-            ref_sensor_choice = st.selectbox("Reference (Fixed)", sensor_options, index=1 if "TMC-2" in sensor_options[1] else 0)
-
-        selected_src_gsd = gsd_map[src_sensor_choice]
-        selected_ref_gsd = gsd_map[ref_sensor_choice]
-
-    with st.sidebar.container(border=True):
         st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">layers</span> Lunar Image Ingestion</div>', unsafe_allow_html=True)
         custom_source_raw = st.segmented_control(
             "Image Ingestion Method",
@@ -238,9 +268,6 @@ else:
         if not custom_source_raw:
             custom_source_raw = "Preloaded Swaths"
         custom_source = "Ingested Flight Images" if custom_source_raw == "Preloaded Swaths" else "Upload Files"
-
-        effective_src_gsd = selected_src_gsd
-        effective_ref_gsd = selected_ref_gsd
 
         if "Ingested Flight Images" in custom_source:
             available_flight = {
@@ -254,8 +281,8 @@ else:
                 "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": (0.25, "OHRC"),
                 "Chandrayaan-2 OHRC (Vikram Site, Sept 2019)": (0.25, "OHRC"),
                 "Chandrayaan-2 IIRS (Hyperspectral, Oct 2023)": (80.0, "IIRS"),
-                "Benchmark: Baseline Control Source": (effective_src_gsd, "BASELINE"),
-                "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, "BASELINE")
+                "Benchmark: Baseline Control Source": (effective_src_gsd, selected_src_code),
+                "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, selected_ref_code)
             }
             src_name = st.selectbox("Source / Moving Image", list(available_flight.keys()), index=0)
             ref_name = st.selectbox("Reference / Fixed Image", list(available_flight.keys()), index=1)
@@ -264,8 +291,8 @@ else:
             r_p = available_flight[ref_name]
             if s_p.exists() and r_p.exists():
                 try:
-                    s_gsd, s_sensor = flight_gsd_map.get(src_name, (effective_src_gsd, "OHRC"))
-                    r_gsd, r_sensor = flight_gsd_map.get(ref_name, (effective_ref_gsd, "IIRS"))
+                    s_gsd, s_sensor = flight_gsd_map.get(src_name, (effective_src_gsd, selected_src_code))
+                    r_gsd, r_sensor = flight_gsd_map.get(ref_name, (effective_ref_gsd, selected_ref_code))
                     src_lunar = load_lunar_image(s_p, gsd_override=s_gsd, sensor_name=s_sensor)
                     ref_lunar = load_lunar_image(r_p, gsd_override=r_gsd, sensor_name=r_sensor)
                 except Exception as e:
@@ -283,8 +310,8 @@ else:
                     r_p = tmp_dir / up_ref.name
                     s_p.write_bytes(up_src.read())
                     r_p.write_bytes(up_ref.read())
-                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd)
-                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd)
+                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd, sensor_name=selected_src_code)
+                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd, sensor_name=selected_ref_code)
                 except Exception as e:
                     st.error(f"Error loading uploaded images: {e}", icon=":material/error:")
             elif up_src or up_ref:
