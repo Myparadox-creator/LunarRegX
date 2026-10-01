@@ -50,6 +50,37 @@ st.markdown("""
     .status-box-warn { background-color: #bb800922; border: 1px solid #9e6a03; border-radius: 8px; padding: 15px; }
     .status-box-fail { background-color: #da363322; border: 1px solid #f85149; border-radius: 8px; padding: 15px; }
     h1, h2, h3 { color: #f0f6fc; }
+
+    /* Aerospace Cockpit Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #0b0e14;
+        border-right: 1px solid #1f2735;
+    }
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #121824;
+        border: 1px solid #232d3f;
+        border-radius: 10px;
+        padding: 8px 12px 12px 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .cockpit-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #58a6ff;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #1f2735;
+    }
+    .cockpit-title .material-symbols-outlined {
+        font-size: 16px;
+        color: #58a6ff;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,9 +88,28 @@ st.title(":material/public: Robust GIS-Assisted Multi-Modal Lunar Image Registra
 st.caption("SIH 2026 Prototype (Problem ID 26166) | Chandrayaan-2 (OHRC, TMC-2, IIRS) ↔ Lunar Reference (LROC NAC/WAC)")
 
 # Sidebar Controls
-st.sidebar.header(":material/settings: System Configuration")
+st.sidebar.markdown("""
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+    <span class="material-symbols-outlined" style="font-size: 22px; color: #58a6ff;">tune</span>
+    <span style="font-size: 1.15rem; font-weight: 700; color: #f0f6fc; letter-spacing: 0.02em;">System Configuration</span>
+</div>
+""", unsafe_allow_html=True)
 
-mode = st.sidebar.radio("Operation Mode", [":material/verified: SIH Judge Demonstration Mode", ":material/tune: Custom Registration & Upload"])
+# -------------------------------------------------------------
+# CARD 1: OPERATION MODE SWITCHER
+# -------------------------------------------------------------
+with st.sidebar.container(border=True):
+    st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">play_circle</span> Operation Mode</div>', unsafe_allow_html=True)
+    mode_selection = st.segmented_control(
+        "Operation Mode",
+        options=["SIH Judge Demo", "Custom Upload"],
+        default="SIH Judge Demo",
+        label_visibility="collapsed"
+    )
+    if not mode_selection:
+        mode_selection = "SIH Judge Demo"
+
+    mode = "SIH Judge Demonstration Mode" if mode_selection == "SIH Judge Demo" else "Custom Registration & Upload"
 
 # Detect mode switch to prevent stale session state collisions
 if "current_mode" not in st.session_state:
@@ -68,8 +118,7 @@ elif st.session_state["current_mode"] != mode:
     st.session_state["current_mode"] = mode
     st.session_state.pop("reg_result", None)
 
-# Sensor Profiles (Cross-Sensor Matching Support)
-st.sidebar.subheader(":material/satellite_alt: Sensor Profiles")
+# Default Sensor Definitions & Mapping
 sensor_options = [
     "Chandrayaan-2 OHRC (0.25 m/px)",
     "Chandrayaan-2 TMC-2 (5.0 m/px)",
@@ -84,23 +133,232 @@ gsd_map = {
     "LRO LROC-NAC (0.50 m/px)": 0.50,
     "LRO LROC-WAC (100 m/px)": 100.0
 }
+selected_src_gsd = 0.25
+selected_ref_gsd = 5.0
+override_gis = False
+gis_override_lat = -70.0
+gis_override_lon = 0.0
+custom_src_gsd = 0.25
+custom_ref_gsd = 5.0
 
-src_sensor_choice = st.sidebar.selectbox(
-    "Source / Moving Sensor",
-    sensor_options,
-    index=0
-)
-ref_sensor_choice = st.sidebar.selectbox(
-    "Reference / Fixed Sensor",
-    sensor_options,
-    index=1 if "TMC-2" in sensor_options[1] else 0
-)
+samples_dir = ROOT_DIR / "data" / "samples"
+src_lunar = None
+ref_lunar = None
 
-selected_src_gsd = gsd_map[src_sensor_choice]
-selected_ref_gsd = gsd_map[ref_sensor_choice]
+# -------------------------------------------------------------
+# CARD 2: MISSION DATA / SCENARIO SELECTOR
+# -------------------------------------------------------------
+if "SIH Judge Demonstration Mode" in mode:
+    with st.sidebar.container(border=True):
+        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">satellite_alt</span> Prepared Flight Scenario</div>', unsafe_allow_html=True)
+        scenario = st.selectbox(
+            "Demonstration Scenarios",
+            [
+                "Scenario 1: Baseline Control (Low illumination delta)",
+                "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)",
+                "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)",
+                "Scenario 4: Viewpoint / Oblique Affine Shear",
+                "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)"
+            ],
+            label_visibility="collapsed"
+        )
 
-with st.sidebar.expander("🌐 Selenographic Coordinates (Optional GIS Override)", expanded=False):
-    st.caption("Specify Selenographic coordinates when uploading raw PNG/JPEG images without embedded GeoTIFF or PDS4 XML tags.")
+        if "current_scenario" not in st.session_state:
+            st.session_state["current_scenario"] = scenario
+        elif st.session_state["current_scenario"] != scenario:
+            st.session_state["current_scenario"] = scenario
+            st.session_state["swap_roles"] = False
+            st.session_state.pop("reg_result", None)
+
+        scen_info = {
+            "Scenario 1": ("Baseline (Low ΔAz)", "OHRC 0.25m ↔ LROC 0.25m", "Standard Control"),
+            "Scenario 2": ("180° Shadow Reversal", "OHRC 0.25m ↔ OHRC 0.25m", "Illumination Inversion"),
+            "Scenario 3": ("Multi-Scale Challenge", "OHRC 0.25m ↔ LROC 0.50m", "2× GSD Pyramid"),
+            "Scenario 4": ("Oblique Viewpoint", "OHRC 0.25m ↔ TMC-2 5.0m", "Affine Perspective"),
+            "Scenario 5": ("Polar Crater Relief", "OHRC 0.25m ↔ LROC 0.50m", "Deep Permanent Shadow")
+        }
+        for k, (name, sensors, tag) in scen_info.items():
+            if k in scenario:
+                st.caption(f":material/layers: **Sensors:** `{sensors}`")
+                st.caption(f":material/flare: **Challenge:** `{tag}`")
+                break
+
+        pair_files = {
+            "Scenario 1: Baseline Control (Low illumination delta)": (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"),
+            "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)": (samples_dir / "pair2_illumination_src.png", samples_dir / "pair2_illumination_ref.png"),
+            "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)": (samples_dir / "pair3_scale_src.png", samples_dir / "pair3_scale_ref.png"),
+            "Scenario 4: Viewpoint / Oblique Affine Shear": (samples_dir / "pair4_viewpoint_src.png", samples_dir / "pair4_viewpoint_ref.png"),
+            "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)": (samples_dir / "pair5_polar_shadow_src.png", samples_dir / "pair5_polar_shadow_ref.png"),
+        }
+
+        src_path, ref_path = pair_files.get(scenario, (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"))
+        if src_path.exists() and ref_path.exists():
+            try:
+                s_az = 315.0 if "180" in scenario else 135.0
+                r_az = 135.0
+                scen_src_gsd = 0.25 if "Multi-Scale" in scenario else selected_src_gsd
+                scen_ref_gsd = 0.50 if "Multi-Scale" in scenario else selected_ref_gsd
+                src_lunar = load_lunar_image(src_path, gsd_override=scen_src_gsd)
+                ref_lunar = load_lunar_image(ref_path, gsd_override=scen_ref_gsd)
+                src_lunar.metadata.solar_azimuth_deg = s_az
+                src_lunar.metadata.solar_elevation_deg = 35.0
+                ref_lunar.metadata.solar_azimuth_deg = r_az
+                ref_lunar.metadata.solar_elevation_deg = 40.0
+
+                if st.button("Swap Source ↔ Reference", key="btn_swap_demo", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+                    st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
+                    st.session_state.pop("reg_result", None)
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Failed to load benchmark image: {e}", icon=":material/error:")
+        else:
+            st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.", icon=":material/warning:")
+
+else:
+    # Custom Registration & Upload Mode
+    with st.sidebar.container(border=True):
+        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">satellite_alt</span> Sensor Profiles</div>', unsafe_allow_html=True)
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            src_sensor_choice = st.selectbox("Source (Moving)", sensor_options, index=0)
+        with col_s2:
+            ref_sensor_choice = st.selectbox("Reference (Fixed)", sensor_options, index=1 if "TMC-2" in sensor_options[1] else 0)
+
+        selected_src_gsd = gsd_map[src_sensor_choice]
+        selected_ref_gsd = gsd_map[ref_sensor_choice]
+
+    with st.sidebar.container(border=True):
+        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">layers</span> Lunar Image Ingestion</div>', unsafe_allow_html=True)
+        custom_source_raw = st.segmented_control(
+            "Image Ingestion Method",
+            options=["Preloaded Swaths", "File Upload"],
+            default="Preloaded Swaths",
+            label_visibility="collapsed"
+        )
+        if not custom_source_raw:
+            custom_source_raw = "Preloaded Swaths"
+        custom_source = "Ingested Flight Images" if custom_source_raw == "Preloaded Swaths" else "Upload Files"
+
+        effective_src_gsd = selected_src_gsd
+        effective_ref_gsd = selected_ref_gsd
+
+        if "Ingested Flight Images" in custom_source:
+            available_flight = {
+                "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
+                "Chandrayaan-2 OHRC (Vikram Site, Sept 2019)": samples_dir / "real_ch2_ohrc_sept2019_vikram.png",
+                "Chandrayaan-2 IIRS (Hyperspectral, Oct 2023)": samples_dir / "real_ch2_iirs_infrared_pass.png",
+                "Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
+                "Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
+            }
+            flight_gsd_map = {
+                "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": (0.25, "OHRC"),
+                "Chandrayaan-2 OHRC (Vikram Site, Sept 2019)": (0.25, "OHRC"),
+                "Chandrayaan-2 IIRS (Hyperspectral, Oct 2023)": (80.0, "IIRS"),
+                "Benchmark: Baseline Control Source": (effective_src_gsd, "BASELINE"),
+                "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, "BASELINE")
+            }
+            src_name = st.selectbox("Source / Moving Image", list(available_flight.keys()), index=0)
+            ref_name = st.selectbox("Reference / Fixed Image", list(available_flight.keys()), index=1)
+
+            s_p = available_flight[src_name]
+            r_p = available_flight[ref_name]
+            if s_p.exists() and r_p.exists():
+                try:
+                    s_gsd, s_sensor = flight_gsd_map.get(src_name, (effective_src_gsd, "OHRC"))
+                    r_gsd, r_sensor = flight_gsd_map.get(ref_name, (effective_ref_gsd, "IIRS"))
+                    src_lunar = load_lunar_image(s_p, gsd_override=s_gsd, sensor_name=s_sensor)
+                    ref_lunar = load_lunar_image(r_p, gsd_override=r_gsd, sensor_name=r_sensor)
+                except Exception as e:
+                    st.error(f"Error loading selected flight images: {e}", icon=":material/error:")
+        else:
+            st.caption("Upload 8/12/16-bit GeoTIFF, TIFF, PNG, or JPEG")
+            up_src = st.file_uploader("Upload Source / Moving", type=["png", "jpg", "jpeg", "tif", "tiff"])
+            up_ref = st.file_uploader("Upload Reference / Fixed", type=["png", "jpg", "jpeg", "tif", "tiff"])
+
+            if up_src and up_ref:
+                try:
+                    tmp_dir = ROOT_DIR / "results" / "temp_uploads"
+                    tmp_dir.mkdir(parents=True, exist_ok=True)
+                    s_p = tmp_dir / up_src.name
+                    r_p = tmp_dir / up_ref.name
+                    s_p.write_bytes(up_src.read())
+                    r_p.write_bytes(up_ref.read())
+                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd)
+                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd)
+                except Exception as e:
+                    st.error(f"Error loading uploaded images: {e}", icon=":material/error:")
+            elif up_src or up_ref:
+                st.info("Uploaded 1 of 2 images. Please upload both to proceed.", icon=":material/info:")
+
+        if src_lunar is not None and ref_lunar is not None:
+            if st.button("Swap Source ↔ Reference", key="btn_swap_custom", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
+                st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
+                st.session_state.pop("reg_result", None)
+                st.rerun()
+
+# -------------------------------------------------------------
+# CARD 3: ALGORITHMIC CORE ENGINE
+# -------------------------------------------------------------
+with st.sidebar.container(border=True):
+    st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">psychology</span> Algorithmic Engine</div>', unsafe_allow_html=True)
+    feature_method = st.selectbox(
+        "Correspondence Engine",
+        [
+            "PHASE_STRUCTURAL (Proposed Physics)",
+            "LOFTR (Deep Transformer)",
+            "RIFT2 (Structural MIM)",
+            "SIFT (Baseline 1)",
+            "AKAZE (Baseline 2)",
+            "LEARNED (Lightweight CNN)"
+        ],
+        index=0
+    )
+
+    if "PHASE_STRUCTURAL" in feature_method:
+        engine_key = "PHASE_STRUCTURAL"
+    elif "LOFTR" in feature_method:
+        engine_key = "LOFTR"
+    elif "RIFT2" in feature_method:
+        engine_key = "RIFT2"
+    elif "SIFT" in feature_method:
+        engine_key = "SIFT"
+    elif "AKAZE" in feature_method:
+        engine_key = "AKAZE"
+    else:
+        engine_key = "LEARNED"
+
+    if engine_key == "LOFTR":
+        loftr_ckpt = ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt"
+        if loftr_ckpt.exists():
+            st.caption(":material/check_circle: **LoFTR:** Lunar Checkpoint Active (`best.ckpt`)")
+        else:
+            st.caption(":material/warning: **LoFTR:** Pretrained Outdoor Fallback")
+
+    model_choice = st.selectbox(
+        "Transformation Model",
+        ["AUTO (Stability-Guided)", "SIMILARITY (4-DOF)", "AFFINE (6-DOF)", "HOMOGRAPHY (8-DOF)"],
+        index=0
+    )
+    model_key = "AUTO" if "AUTO" in model_choice else ("SIMILARITY" if "SIMILARITY" in model_choice else ("AFFINE" if "AFFINE" in model_choice else "HOMOGRAPHY"))
+
+# -------------------------------------------------------------
+# CARD 4: PIPELINE VERIFICATION GUARDRAILS (2x2 GRID)
+# -------------------------------------------------------------
+with st.sidebar.container(border=True):
+    st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">verified_user</span> Verification Guardrails</div>', unsafe_allow_html=True)
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        use_gis = st.checkbox("GIS Footprint", value=True, help="Compute selenographic overlap & extract common ROI")
+        use_subpixel = st.checkbox("Sub-Pixel 2D", value=True, help="Continuous 2D parabolic peak interpolation (<0.3 px)")
+    with col_g2:
+        use_multimodal = st.checkbox("Multimodal", value=True, help="Sensor-aware LoG / DoG / PCA structural maps")
+        use_anms = st.checkbox("ANMS Grid", value=True, help="Adaptive Non-Maximal Suppression for uniform spatial distribution")
+
+# -------------------------------------------------------------
+# CARD 5: SELENOGRAPHIC GEODESY OVERRIDE (OPTIONAL)
+# -------------------------------------------------------------
+with st.sidebar.expander("🌐 Selenographic Geodesy (Optional)", expanded=False):
+    st.caption("Specify lunar coordinates when uploading non-georeferenced PNG/JPEG crops.")
     override_gis = st.checkbox("Enable Coordinate Override", value=False)
     col_lat, col_lon = st.columns(2)
     with col_lat:
@@ -113,190 +371,12 @@ with st.sidebar.expander("🌐 Selenographic Coordinates (Optional GIS Override)
     with col_rg:
         custom_ref_gsd = st.number_input("Ref GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_ref_gsd), step=1.0)
 
-effective_src_gsd = custom_src_gsd if override_gis else selected_src_gsd
-effective_ref_gsd = custom_ref_gsd if override_gis else selected_ref_gsd
-
-# Matcher Configuration
-st.sidebar.subheader("Algorithmic Engine")
-feature_method = st.sidebar.selectbox(
-    "Correspondence Engine",
-    [
-        "PHASE_STRUCTURAL (Proposed Physics-Based)",
-        "LOFTR (Deep Transformer)",
-        "RIFT2 (Structural MIM)",
-        "SIFT (Baseline 1)",
-        "AKAZE (Baseline 2)",
-        "LEARNED (Lightweight CNN)"
-    ],
-    index=0
-)
-
-if "PHASE_STRUCTURAL" in feature_method:
-    engine_key = "PHASE_STRUCTURAL"
-elif "LOFTR" in feature_method:
-    engine_key = "LOFTR"
-elif "RIFT2" in feature_method:
-    engine_key = "RIFT2"
-elif "SIFT" in feature_method:
-    engine_key = "SIFT"
-elif "AKAZE" in feature_method:
-    engine_key = "AKAZE"
-else:
-    engine_key = "LEARNED"
-
-if engine_key == "LOFTR":
-    loftr_ckpt = ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt"
-    if loftr_ckpt.exists():
-        st.sidebar.caption(":material/check_circle: **LoFTR Status:** Lunar Fine-Tuned Checkpoint Active (`best.ckpt`)")
-    else:
-        st.sidebar.caption(":material/warning: **LoFTR Status:** Pretrained Outdoor Fallback")
-
-model_choice = st.sidebar.selectbox("Transformation Model", ["AUTO (Stability-Guided)", "SIMILARITY (4-DOF)", "AFFINE (6-DOF)", "HOMOGRAPHY (8-DOF)"], index=0)
-model_key = "AUTO" if "AUTO" in model_choice else ("SIMILARITY" if "SIMILARITY" in model_choice else ("AFFINE" if "AFFINE" in model_choice else "HOMOGRAPHY"))
-
-use_gis = st.sidebar.checkbox("GIS Pre-Registration & Footprint Check", value=True)
-use_multimodal = st.sidebar.checkbox("Sensor-Aware Multimodal Processing", value=True)
-use_subpixel = st.sidebar.checkbox("Sub-Pixel Refinement (2D Parabolic Peak)", value=True)
-use_anms = st.sidebar.checkbox("Spatially Uniform ANMS Grid", value=True)
-
-# Data Ingestion
-samples_dir = ROOT_DIR / "data" / "samples"
-src_lunar = None
-ref_lunar = None
-
-if "SIH Judge Demonstration Mode" in mode:
-    st.sidebar.subheader("Select Prepared Lunar Scenario")
-    scenario = st.sidebar.selectbox(
-        "Demonstration Scenarios",
-        [
-            "Scenario 1: Baseline Control (Low illumination delta)",
-            "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)",
-            "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)",
-            "Scenario 4: Viewpoint / Oblique Affine Shear",
-            "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)"
-        ]
-    )
-
-    if "current_scenario" not in st.session_state:
-        st.session_state["current_scenario"] = scenario
-    elif st.session_state["current_scenario"] != scenario:
-        st.session_state["current_scenario"] = scenario
-        st.session_state["swap_roles"] = False
-        st.session_state.pop("reg_result", None)
-
-    pair_files = {
-        "Scenario 1: Baseline Control (Low illumination delta)": (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"),
-        "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)": (samples_dir / "pair2_illumination_src.png", samples_dir / "pair2_illumination_ref.png"),
-        "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)": (samples_dir / "pair3_scale_src.png", samples_dir / "pair3_scale_ref.png"),
-        "Scenario 4: Viewpoint / Oblique Affine Shear": (samples_dir / "pair4_viewpoint_src.png", samples_dir / "pair4_viewpoint_ref.png"),
-        "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)": (samples_dir / "pair5_polar_shadow_src.png", samples_dir / "pair5_polar_shadow_ref.png"),
-    }
-
-    src_path, ref_path = pair_files.get(scenario, (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"))
-    if src_path.exists() and ref_path.exists():
-        try:
-            # Assign appropriate solar geometry metadata based on scenario
-            s_az = 315.0 if "180" in scenario else 135.0
-            r_az = 135.0
-            scen_src_gsd = 0.25 if "Multi-Scale" in scenario else effective_src_gsd
-            scen_ref_gsd = 0.50 if "Multi-Scale" in scenario else effective_ref_gsd
-            src_lunar = load_lunar_image(src_path, gsd_override=scen_src_gsd)
-            ref_lunar = load_lunar_image(ref_path, gsd_override=scen_ref_gsd)
-            src_lunar.metadata.solar_azimuth_deg = s_az
-            src_lunar.metadata.solar_elevation_deg = 35.0
-            ref_lunar.metadata.solar_azimuth_deg = r_az
-            ref_lunar.metadata.solar_elevation_deg = 40.0
-            if override_gis:
-                src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-                ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-
-            if st.sidebar.button("Swap Source ↔ Reference", key="btn_swap_demo", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
-                st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
-                st.session_state.pop("reg_result", None)
-                st.rerun()
-        except Exception as e:
-            st.error(f"Failed to load benchmark image: {e}", icon=":material/error:")
-    else:
-        st.warning("Benchmark samples not found. Run scripts/generate_lunar_benchmarks.py first.", icon=":material/warning:")
-
-else:
-    st.sidebar.subheader(":material/layers: Select or Upload Lunar Images")
-    custom_source = st.sidebar.radio(
-        "Image Selection Method",
-        [":material/folder_open: Ingested Flight Images (Ready to Use)", ":material/upload_file: Upload Files from Computer"],
-        index=0
-    )
-
-    if "Ingested Flight Images" in custom_source:
-        available_flight = {
-            "Chandrayaan-2 OHRC (Landing Site Survey, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
-            "Chandrayaan-2 OHRC (Sept 2019 Vikram Site Pass)": samples_dir / "real_ch2_ohrc_sept2019_vikram.png",
-            "Chandrayaan-2 IIRS (Oct 2023 Hyperspectral Infrared)": samples_dir / "real_ch2_iirs_infrared_pass.png",
-            "Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
-            "Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
-        }
-        flight_gsd_map = {
-            "Chandrayaan-2 OHRC (Landing Site Survey, Oct 2021)": (0.25, "OHRC"),
-            "Chandrayaan-2 OHRC (Sept 2019 Vikram Site Pass)": (0.25, "OHRC"),
-            "Chandrayaan-2 IIRS (Oct 2023 Hyperspectral Infrared)": (80.0, "IIRS"),
-            "Benchmark: Baseline Control Source": (effective_src_gsd, "BASELINE"),
-            "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, "BASELINE")
-        }
-        src_name = st.sidebar.selectbox("Select Source / Moving Image", list(available_flight.keys()), index=0)
-        ref_name = st.sidebar.selectbox("Select Reference / Fixed Image", list(available_flight.keys()), index=1)
-        
-        s_p = available_flight[src_name]
-        r_p = available_flight[ref_name]
-        if s_p.exists() and r_p.exists():
-            try:
-                s_gsd, s_sensor = flight_gsd_map.get(src_name, (effective_src_gsd, "OHRC"))
-                r_gsd, r_sensor = flight_gsd_map.get(ref_name, (effective_ref_gsd, "IIRS"))
-                src_lunar = load_lunar_image(s_p, gsd_override=s_gsd, sensor_name=s_sensor)
-                ref_lunar = load_lunar_image(r_p, gsd_override=r_gsd, sensor_name=r_sensor)
-                if override_gis:
-                    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-                    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-            except Exception as e:
-                st.sidebar.error(f"Error loading selected flight images: {e}", icon=":material/error:")
-                src_lunar = None
-                ref_lunar = None
-    else:
-        st.sidebar.caption("Supported: 8/12/16-bit GeoTIFF, TIFF, PNG, JPEG")
-        st.sidebar.caption("Real flight PNGs are stored in data repositories.")
-        up_src = st.sidebar.file_uploader("Upload Source / Moving Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
-        up_ref = st.sidebar.file_uploader("Upload Reference / Fixed Image", type=["png", "jpg", "jpeg", "tif", "tiff"])
-
-        if up_src and up_ref:
-            try:
-                tmp_dir = ROOT_DIR / "results" / "temp_uploads"
-                tmp_dir.mkdir(parents=True, exist_ok=True)
-                s_p = tmp_dir / up_src.name
-                r_p = tmp_dir / up_ref.name
-                s_p.write_bytes(up_src.read())
-                r_p.write_bytes(up_ref.read())
-                src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd)
-                ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd)
-                if override_gis:
-                    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-                    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-                    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-            except Exception as e:
-                st.sidebar.error(f"Error loading uploaded images: {e}", icon=":material/error:")
-                src_lunar = None
-                ref_lunar = None
-        elif up_src or up_ref:
-            st.sidebar.info("Uploaded 1 of 2 images. Please upload the matching pair to proceed.", icon=":material/info:")
-
-    if src_lunar is not None and ref_lunar is not None:
-        if st.sidebar.button("Swap Source ↔ Reference", key="btn_swap_custom", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
-            st.session_state["swap_roles"] = not st.session_state.get("swap_roles", False)
-            st.session_state.pop("reg_result", None)
-            st.rerun()
+# Apply GIS overrides if active
+if override_gis and src_lunar is not None and ref_lunar is not None:
+    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
 
 # Apply role swapping if active
 if "swap_roles" not in st.session_state:
