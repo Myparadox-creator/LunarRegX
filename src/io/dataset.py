@@ -151,7 +151,18 @@ def load_lunar_image(
         except Exception:
             pass
 
-    if gsd_override is not None:
+    # 3. Calculate authentic physical GSD from selenographic bounds if available
+    b_geo = meta.extra_attributes.get("bounds_geo")
+    if b_geo and raw.shape[0] > 0:
+        min_lon, min_lat, max_lon, max_lat = b_geo
+        lat_span_deg = abs(max_lat - min_lat)
+        # Moon mean radius R = 1,737,400 m -> 30,323.0 meters per degree of latitude
+        physical_h_m = lat_span_deg * 30323.0
+        if physical_h_m > 0:
+            calc_gsd = round(float(physical_h_m / raw.shape[0]), 4)
+            meta.extra_attributes["calculated_gsd_m"] = calc_gsd
+            meta.gsd = calc_gsd
+    elif gsd_override is not None:
         meta.gsd = gsd_override
 
     return LunarImage(

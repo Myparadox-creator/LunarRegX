@@ -323,8 +323,14 @@ else:
                         r_xml_p = r_p.with_suffix(".xml")
                         r_xml_p.write_bytes(up_ref_xml.read())
 
-                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd, sensor_name=selected_src_code)
-                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd, sensor_name=selected_ref_code)
+                    # Load with XML-calculated GSD priority
+                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd if not up_src_xml else None, sensor_name=selected_src_code)
+                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd if not up_ref_xml else None, sensor_name=selected_ref_code)
+
+                    s_bg = src_lunar.metadata.extra_attributes.get("bounds_geo")
+                    r_bg = ref_lunar.metadata.extra_attributes.get("bounds_geo")
+                    if s_bg and r_bg:
+                        st.success(f"**:material/verified: PDS4 Georeferencing Active**<br>Source GSD: `{src_lunar.metadata.gsd:.2f}m` | Ref GSD: `{ref_lunar.metadata.gsd:.2f}m`<br>Physical Extent: Lon `[{s_bg[0]:.2f}°, {s_bg[2]:.2f}°]`, Lat `[{s_bg[1]:.2f}°, {s_bg[3]:.2f}°]`", icon=":material/check_circle:")
                 except Exception as e:
                     st.error(f"Error loading uploaded images: {e}", icon=":material/error:")
             elif up_src or up_ref:

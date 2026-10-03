@@ -53,12 +53,8 @@ class OHRCEncoder(BaseSensorEncoder):
         enhanced_8u = clahe.apply(sharp_8u)
         enhanced_norm = enhanced_8u.astype(np.float32) / 255.0
 
-        # 3. Structural Sobel magnitude
-        gx = cv2.Sobel(enhanced_norm, cv2.CV_32F, 1, 0, ksize=3)
-        gy = cv2.Sobel(enhanced_norm, cv2.CV_32F, 0, 1, ksize=3)
-        edge_mag = np.sqrt(gx**2 + gy**2)
-        p95 = np.percentile(edge_mag, 95.0)
-        structural_map = np.clip(edge_mag / (p95 + 1e-6), 0.0, 1.0)
+        # 3. Structural normalized surface
+        structural_map = enhanced_norm
 
         # 4. Valid terrain mask
         valid_mask = (enhanced_norm > 0.03) & (enhanced_norm < 0.98)
@@ -146,10 +142,7 @@ class IIRSEncoder(BaseSensorEncoder):
         norm_8u = (norm * 255.0).astype(np.uint8)
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         enhanced_8u = clahe.apply(norm_8u)
-
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        morph_grad = cv2.morphologyEx(enhanced_8u, cv2.MORPH_GRADIENT, kernel)
-        structural_map = morph_grad.astype(np.float32) / 255.0
+        structural_map = enhanced_8u.astype(np.float32) / 255.0
 
         valid_mask = (norm > 0.05) & (norm < 0.95)
         if image.mask is not None:

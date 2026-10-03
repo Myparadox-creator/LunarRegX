@@ -57,7 +57,7 @@ class RegistrationPipelineConfig:
     use_bandpass: bool = False
     use_spatial_anms: bool = True
     use_subpixel: bool = True
-    ratio_thresh: float = 0.80
+    ratio_thresh: float = 0.85
     ransac_thresh_px: float = 3.0
     anms_grid_size: int = 10
     anms_max_per_cell: int = 4
@@ -308,22 +308,25 @@ class LunarRegistrationPipeline:
         target_rh = max(min_dim, int(round(curr_rh * ref_iso_scale)))
 
         # Point-Spread-Function (PSF) simulation for extreme multi-scale disparities
+        effective_ratio_thresh = cfg.ratio_thresh
         if gsd_ratio < 0.5:
-            # Source has much finer resolution: low-pass filter to simulate reference sensor MTF
-            sigma = float(np.clip(0.5 / max(gsd_ratio, 0.001), 1.0, 8.0))
+            # Source has much finer resolution: mild low-pass filter to simulate reference sensor MTF
+            sigma = float(np.clip(0.3 / max(gsd_ratio, 0.01), 1.0, 3.5))
             ksize = int(2 * round(2 * sigma) + 1)
             src_8u_filt = cv2.GaussianBlur(src_8u, (ksize, ksize), sigmaX=sigma)
             src_norm_filt = cv2.GaussianBlur(src_norm, (ksize, ksize), sigmaX=sigma)
             ref_8u_filt = ref_8u
             ref_norm_filt = ref_norm
+            effective_ratio_thresh = max(cfg.ratio_thresh, 0.88)
         elif gsd_ratio > 2.0:
-            # Reference has much finer resolution: low-pass filter to simulate source sensor MTF
-            sigma = float(np.clip(0.5 * gsd_ratio, 1.0, 8.0))
+            # Reference has much finer resolution: mild low-pass filter to simulate source sensor MTF
+            sigma = float(np.clip(0.3 * gsd_ratio, 1.0, 3.5))
             ksize = int(2 * round(2 * sigma) + 1)
             ref_8u_filt = cv2.GaussianBlur(ref_8u, (ksize, ksize), sigmaX=sigma)
             ref_norm_filt = cv2.GaussianBlur(ref_norm, (ksize, ksize), sigmaX=sigma)
             src_8u_filt = src_8u
             src_norm_filt = src_norm
+            effective_ratio_thresh = max(cfg.ratio_thresh, 0.88)
         else:
             src_8u_filt = src_8u
             src_norm_filt = src_norm
@@ -369,7 +372,11 @@ class LunarRegistrationPipeline:
 
             kps_src, desc_src = self.feature_engine.detect_and_compute(match_src_8u, match_src_mask, rel_src)
             kps_ref, desc_ref = self.feature_engine.detect_and_compute(match_ref_8u, match_ref_mask, rel_ref)
+
+            orig_thresh = self.matcher.ratio_thresh
+            self.matcher.ratio_thresh = effective_ratio_thresh
             candidates = self.matcher.match(kps_src, desc_src, kps_ref, desc_ref, rel_src, rel_ref)
+            self.matcher.ratio_thresh = orig_thresh
 
         if len(candidates) < 4:
             raise RuntimeError(f"Found only {len(candidates)} candidate matches. Geometric registration requires at least 4.")
