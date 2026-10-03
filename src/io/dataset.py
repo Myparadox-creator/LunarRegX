@@ -188,34 +188,90 @@ def _find_and_parse_companion_xml(img_path: Path) -> Dict[str, Any]:
     try:
         tree = ET.parse(str(xml_path))
         root = tree.getroot()
+        tags: Dict[str, str] = {}
         for elem in root.iter():
-            if "}" in elem.tag:
-                elem.tag = elem.tag.split("}", 1)[1]
+            local_tag = elem.tag.split("}", 1)[1] if "}" in elem.tag else elem.tag
+            if elem.text and elem.text.strip():
+                tags[local_tag.lower()] = elem.text.strip()
 
-        az = root.find(".//solar_azimuth_angle") or root.find(".//sun_azimuth_angle")
-        el = root.find(".//solar_elevation_angle") or root.find(".//sun_elevation_angle")
-        inc = root.find(".//incidence_angle")
+        # Parse solar angles
+        for az_k in ["solar_azimuth_angle", "sun_azimuth_angle", "sun_azimuth", "solar_azimuth"]:
+            if az_k in tags:
+                try:
+                    meta["solar_azimuth_deg"] = float(tags[az_k])
+                    break
+                except ValueError:
+                    pass
 
-        if az is not None and az.text:
-            meta["solar_azimuth_deg"] = float(az.text)
-        if el is not None and el.text:
-            meta["solar_elevation_deg"] = float(el.text)
-        if inc is not None and inc.text:
-            meta["incidence_angle_deg"] = float(inc.text)
+        for el_k in ["solar_elevation_angle", "sun_elevation_angle", "sun_elevation", "solar_elevation"]:
+            if el_k in tags:
+                try:
+                    meta["solar_elevation_deg"] = float(tags[el_k])
+                    break
+                except ValueError:
+                    pass
 
-        w_lon = root.find(".//westernmost_longitude") or root.find(".//west_bounding_coordinate")
-        e_lon = root.find(".//easternmost_longitude") or root.find(".//east_bounding_coordinate")
-        n_lat = root.find(".//northernmost_latitude") or root.find(".//north_bounding_coordinate")
-        s_lat = root.find(".//southernmost_latitude") or root.find(".//south_bounding_coordinate")
+        for inc_k in ["incidence_angle", "incidence"]:
+            if inc_k in tags:
+                try:
+                    meta["incidence_angle_deg"] = float(tags[inc_k])
+                    break
+                except ValueError:
+                    pass
 
-        if all(x is not None and x.text for x in [w_lon, e_lon, n_lat, s_lat]):
-            min_lon = float(w_lon.text)
-            max_lon = float(e_lon.text)
-            min_lat = float(s_lat.text)
-            max_lat = float(n_lat.text)
-            meta["bounds_geo"] = (min_lon, min_lat, max_lon, max_lat)
-            meta["center_longitude"] = (min_lon + max_lon) / 2.0
-            meta["center_latitude"] = (min_lat + max_lat) / 2.0
+        # Check for standard bounding coordinates
+        w_lon = tags.get("westernmost_longitude") or tags.get("west_bounding_coordinate")
+        e_lon = tags.get("easternmost_longitude") or tags.get("east_bounding_coordinate")
+        n_lat = tags.get("northernmost_latitude") or tags.get("north_bounding_coordinate")
+        s_lat = tags.get("southernmost_latitude") or tags.get("south_bounding_coordinate")
+
+        if all(x is not None for x in [w_lon, e_lon, n_lat, s_lat]):
+            try:
+                min_lon = float(w_lon)
+                max_lon = float(e_lon)
+                min_lat = float(s_lat)
+                max_lat = float(n_lat)
+                meta["bounds_geo"] = (min_lon, min_lat, max_lon, max_lat)
+                meta["center_longitude"] = (min_lon + max_lon) / 2.0
+                meta["center_latitude"] = (min_lat + max_lat) / 2.0
+            except ValueError:
+                pass
+        else:
+            # Check for Chandrayaan-2 PRADAN corner coordinates
+            corner_lats = []
+            corner_lons = []
+            for tag in ["upper_left_latitude", "upper_right_latitude", "lower_left_latitude", "lower_right_latitude"]:
+                if tag in tags:
+                    try:
+                        corner_lats.append(float(tags[tag]))
+                    except ValueError:
+                        pass
+            for tag in ["upper_left_longitude", "upper_right_longitude", "lower_left_longitude", "lower_right_longitude"]:
+                if tag in tags:
+                    try:
+                        corner_lons.append(float(tags[tag]))
+                    except ValueError:
+                        pass
+
+            if len(corner_lats) >= 2 and len(corner_lons) >= 2:
+                min_lon = min(corner_lons)
+                max_lon = max(corner_lons)
+                min_lat = min(corner_lats)
+                max_lat = max(corner_lats)
+                meta["bounds_geo"] = (min_lon, min_lat, max_lon, max_lat)
+                meta["center_longitude"] = (min_lon + max_lon) / 2.0
+                meta["center_latitude"] = (min_lat + max_lat) / 2.0
+
+        # Pixel resolution / GSD detection
+        for res_k in ["pixel_resolution", "spatial_resolution", "detector_pixel_width"]:
+            if res_k in tags:
+                try:
+                    parsed_res = float(tags[res_k])
+                    if parsed_res > 0:
+                        meta["gsd"] = parsed_res
+                        break
+                except ValueError:
+                    pass
 
         # Sensor detection from filename
         fname = xml_path.name.lower()

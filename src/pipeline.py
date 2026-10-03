@@ -283,51 +283,76 @@ class LunarRegistrationPipeline:
             src_mask = src_shadow
             ref_mask = ref_shadow
 
-        # Multi-scale pyramid normalization: ensure feature matching occurs at comparable pixel scales
+        # Multi-scale normalization: strictly preserve physical aspect ratios and simulate sensor PSF
         curr_sw, curr_sh = active_source.width, active_source.height
         curr_rw, curr_rh = active_reference.width, active_reference.height
 
-        scale_ratio = spatial_pre_reg.scale_ratio if spatial_pre_reg else (curr_sw / max(curr_rw, 1))
-        needs_pyramid = (scale_ratio < 0.8 or scale_ratio > 1.25) or (abs(curr_sw - curr_rw) > 32 or abs(curr_sh - curr_rh) > 32)
+        src_gsd = float(active_source.metadata.gsd) if (active_source.metadata and active_source.metadata.gsd) else (spatial_pre_reg.source_gsd if spatial_pre_reg else 1.0)
+        ref_gsd = float(active_reference.metadata.gsd) if (active_reference.metadata and active_reference.metadata.gsd) else (spatial_pre_reg.reference_gsd if spatial_pre_reg else 1.0)
+        gsd_ratio = float(src_gsd / ref_gsd) if ref_gsd > 0 else 1.0
 
-        if needs_pyramid:
-            target_w = max(min(curr_sw, curr_rw), 128)
-            target_h = max(min(curr_sh, curr_rh), 128)
-            # Cap at 1024 to protect memory
-            target_w = min(target_w, 1024)
-            target_h = min(target_h, 1024)
+        # Memory safety: cap maximum dimension to 1024 while preserving aspect ratio
+        max_dim = 1024
+        min_dim = 64
 
-            # Resize source
-            if curr_sw != target_w or curr_sh != target_h:
-                interp = cv2.INTER_AREA if (curr_sw > target_w) else cv2.INTER_CUBIC
-                match_src_8u = cv2.resize(src_8u, (target_w, target_h), interpolation=interp)
-                match_src_norm = cv2.resize(src_norm, (target_w, target_h), interpolation=interp)
-                match_src_mask = (cv2.resize(src_mask.astype(np.uint8), (target_w, target_h), interpolation=cv2.INTER_NEAREST) > 0) if src_mask is not None else None
-                src_scale_x = curr_sw / float(target_w)
-                src_scale_y = curr_sh / float(target_h)
-            else:
-                match_src_8u = src_8u
-                match_src_norm = src_norm
-                match_src_mask = src_mask
+        max_extent_s = max(curr_sw, curr_sh)
+        max_extent_r = max(curr_rw, curr_rh)
+        target_extent = min(max_dim, max(max_extent_s, max_extent_r))
 
-            # Resize reference
-            if curr_rw != target_w or curr_rh != target_h:
-                interp = cv2.INTER_AREA if (curr_rw > target_w) else cv2.INTER_CUBIC
-                match_ref_8u = cv2.resize(ref_8u, (target_w, target_h), interpolation=interp)
-                match_ref_norm = cv2.resize(ref_norm, (target_w, target_h), interpolation=interp)
-                match_ref_mask = (cv2.resize(ref_mask.astype(np.uint8), (target_w, target_h), interpolation=cv2.INTER_NEAREST) > 0) if ref_mask is not None else None
-                ref_scale_x = curr_rw / float(target_w)
-                ref_scale_y = curr_rh / float(target_h)
-            else:
-                match_ref_8u = ref_8u
-                match_ref_norm = ref_norm
-                match_ref_mask = ref_mask
+        src_iso_scale = min(float(max_dim) / max_extent_s, float(target_extent) / max_extent_s)
+        ref_iso_scale = min(float(max_dim) / max_extent_r, float(target_extent) / max_extent_r)
+
+        target_sw = max(min_dim, int(round(curr_sw * src_iso_scale)))
+        target_sh = max(min_dim, int(round(curr_sh * src_iso_scale)))
+        target_rw = max(min_dim, int(round(curr_rw * ref_iso_scale)))
+        target_rh = max(min_dim, int(round(curr_rh * ref_iso_scale)))
+
+        # Point-Spread-Function (PSF) simulation for extreme multi-scale disparities
+        if gsd_ratio < 0.5:
+            # Source has much finer resolution: low-pass filter to simulate reference sensor MTF
+            sigma = float(np.clip(0.5 / max(gsd_ratio, 0.001), 1.0, 8.0))
+            ksize = int(2 * round(2 * sigma) + 1)
+            src_8u_filt = cv2.GaussianBlur(src_8u, (ksize, ksize), sigmaX=sigma)
+            src_norm_filt = cv2.GaussianBlur(src_norm, (ksize, ksize), sigmaX=sigma)
+            ref_8u_filt = ref_8u
+            ref_norm_filt = ref_norm
+        elif gsd_ratio > 2.0:
+            # Reference has much finer resolution: low-pass filter to simulate source sensor MTF
+            sigma = float(np.clip(0.5 * gsd_ratio, 1.0, 8.0))
+            ksize = int(2 * round(2 * sigma) + 1)
+            ref_8u_filt = cv2.GaussianBlur(ref_8u, (ksize, ksize), sigmaX=sigma)
+            ref_norm_filt = cv2.GaussianBlur(ref_norm, (ksize, ksize), sigmaX=sigma)
+            src_8u_filt = src_8u
+            src_norm_filt = src_norm
         else:
-            match_src_8u = src_8u
-            match_src_norm = src_norm
+            src_8u_filt = src_8u
+            src_norm_filt = src_norm
+            ref_8u_filt = ref_8u
+            ref_norm_filt = ref_norm
+
+        if target_sw != curr_sw or target_sh != curr_sh:
+            interp = cv2.INTER_AREA if (curr_sw > target_sw) else cv2.INTER_CUBIC
+            match_src_8u = cv2.resize(src_8u_filt, (target_sw, target_sh), interpolation=interp)
+            match_src_norm = cv2.resize(src_norm_filt, (target_sw, target_sh), interpolation=interp)
+            match_src_mask = (cv2.resize(src_mask.astype(np.uint8), (target_sw, target_sh), interpolation=cv2.INTER_NEAREST) > 0) if src_mask is not None else None
+            src_scale_x = curr_sw / float(target_sw)
+            src_scale_y = curr_sh / float(target_sh)
+        else:
+            match_src_8u = src_8u_filt
+            match_src_norm = src_norm_filt
             match_src_mask = src_mask
-            match_ref_8u = ref_8u
-            match_ref_norm = ref_norm
+
+        if target_rw != curr_rw or target_rh != curr_rh:
+            interp = cv2.INTER_AREA if (curr_rw > target_rw) else cv2.INTER_CUBIC
+            match_ref_8u = cv2.resize(ref_8u_filt, (target_rw, target_rh), interpolation=interp)
+            match_ref_norm = cv2.resize(ref_norm_filt, (target_rw, target_rh), interpolation=interp)
+            match_ref_mask = (cv2.resize(ref_mask.astype(np.uint8), (target_rw, target_rh), interpolation=cv2.INTER_NEAREST) > 0) if ref_mask is not None else None
+            ref_scale_x = curr_rw / float(target_rw)
+            ref_scale_y = curr_rh / float(target_rh)
+        else:
+            match_ref_8u = ref_8u_filt
+            match_ref_norm = ref_norm_filt
+            match_ref_mask = ref_mask
             match_ref_mask = ref_mask
 
         # 4. Correspondence Matching

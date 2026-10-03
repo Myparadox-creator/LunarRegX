@@ -31,7 +31,12 @@ def create_footprint_from_bounds(
     """
     Generate LunarFootprint from selenographic bounding coordinates.
     """
-    l_crs = crs or LunarCRS(projection_type="EQUIRECTANGULAR", center_lon_deg=(min_lon + max_lon) / 2.0, center_lat_deg=(min_lat + max_lat) / 2.0)
+    c_lat = (min_lat + max_lat) / 2.0
+    c_lon = (min_lon + max_lon) / 2.0
+    proj_type = "POLAR_STEREOGRAPHIC_SOUTH" if abs(c_lat) >= 65.0 and c_lat < 0 else (
+        "POLAR_STEREOGRAPHIC_NORTH" if c_lat >= 65.0 else "EQUIRECTANGULAR"
+    )
+    l_crs = crs or LunarCRS(projection_type=proj_type, center_lon_deg=c_lon, center_lat_deg=c_lat)
     poly_geo = box(min_lon, min_lat, max_lon, max_lat)
 
     # Project coordinates to meters

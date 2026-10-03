@@ -299,8 +299,13 @@ else:
                     st.error(f"Error loading selected flight images: {e}", icon=":material/error:")
         else:
             st.caption("Upload 8/12/16-bit GeoTIFF, TIFF, PNG, or JPEG")
-            up_src = st.file_uploader("Upload Source / Moving", type=["png", "jpg", "jpeg", "tif", "tiff"])
-            up_ref = st.file_uploader("Upload Reference / Fixed", type=["png", "jpg", "jpeg", "tif", "tiff"])
+            col_u1, col_u2 = st.columns(2)
+            with col_u1:
+                up_src = st.file_uploader("Source / Moving Raster", type=["png", "jpg", "jpeg", "tif", "tiff"])
+                up_src_xml = st.file_uploader("Source PDS4 XML (Optional)", type=["xml"], help="Upload PRADAN XML label for automatic georeferencing and solar angles")
+            with col_u2:
+                up_ref = st.file_uploader("Reference / Fixed Raster", type=["png", "jpg", "jpeg", "tif", "tiff"])
+                up_ref_xml = st.file_uploader("Reference PDS4 XML (Optional)", type=["xml"], help="Upload PRADAN XML label for automatic georeferencing and solar angles")
 
             if up_src and up_ref:
                 try:
@@ -310,6 +315,14 @@ else:
                     r_p = tmp_dir / up_ref.name
                     s_p.write_bytes(up_src.read())
                     r_p.write_bytes(up_ref.read())
+
+                    if up_src_xml:
+                        s_xml_p = s_p.with_suffix(".xml")
+                        s_xml_p.write_bytes(up_src_xml.read())
+                    if up_ref_xml:
+                        r_xml_p = r_p.with_suffix(".xml")
+                        r_xml_p.write_bytes(up_ref_xml.read())
+
                     src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd, sensor_name=selected_src_code)
                     ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd, sensor_name=selected_ref_code)
                 except Exception as e:
@@ -382,28 +395,106 @@ with st.sidebar.container(border=True):
         use_anms = st.checkbox("ANMS Grid", value=True, help="Adaptive Non-Maximal Suppression for uniform spatial distribution")
 
 # -------------------------------------------------------------
-# CARD 5: SELENOGRAPHIC GEODESY OVERRIDE (OPTIONAL)
+# CARD 5: SELENOGRAPHIC GEODESY & PRADAN BOUNDS (OPTIONAL)
 # -------------------------------------------------------------
-with st.sidebar.expander("🌐 Selenographic Geodesy (Optional)", expanded=False):
-    st.caption("Specify lunar coordinates when uploading non-georeferenced PNG/JPEG crops.")
-    override_gis = st.checkbox("Enable Coordinate Override", value=False)
-    col_lat, col_lon = st.columns(2)
-    with col_lat:
-        gis_override_lat = st.number_input("Center Latitude (°)", min_value=-90.0, max_value=90.0, value=-70.0, step=0.1)
-    with col_lon:
-        gis_override_lon = st.number_input("Center Longitude (°)", min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
-    col_sg, col_rg = st.columns(2)
-    with col_sg:
-        custom_src_gsd = st.number_input("Source GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_src_gsd), step=0.25)
-    with col_rg:
-        custom_ref_gsd = st.number_input("Ref GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_ref_gsd), step=1.0)
+with st.sidebar.expander("🌐 Selenographic Geodesy & Footprints", expanded=False):
+    st.caption("Anchor lunar swaths with exact ISRO PRADAN bounding boxes or selenographic coordinates.")
+    override_gis = st.checkbox("Enable Geodesy / PRADAN Anchoring", value=False)
+    
+    geodesy_mode = None
+    if override_gis:
+        geodesy_mode = st.radio(
+            "Geodesy Input Method",
+            ["ISRO PRADAN Bounding Box (Lat/Lon Bounds)", "Center Point & GSD Manual Override"],
+            index=0
+        )
+        
+        if "PRADAN" in geodesy_mode:
+            pradan_preset = st.selectbox(
+                "PRADAN Footprint Presets",
+                [
+                    "Custom Coordinate Entry",
+                    "Chandrayaan-2 Landing Site (OHRC Oct 2021 inside IIRS Swath)",
+                    "Chandrayaan-2 Vikram Lander Site (Sept 2019)"
+                ],
+                index=0
+            )
+            
+            if pradan_preset == "Chandrayaan-2 Landing Site (OHRC Oct 2021 inside IIRS Swath)":
+                def_s_lon_min, def_s_lon_max = 32.1085, 32.5580
+                def_s_lat_min, def_s_lat_max = -69.6912, -68.8496
+                def_s_gsd = 0.25
+                def_r_lon_min, def_r_lon_max = 31.0186, 33.9844
+                def_r_lat_min, def_r_lat_max = -72.4302, -66.1858
+                def_r_gsd = 80.0
+            elif pradan_preset == "Chandrayaan-2 Vikram Lander Site (Sept 2019)":
+                def_s_lon_min, def_s_lon_max = 22.5730, 22.9283
+                def_s_lat_min, def_s_lat_max = -71.4000, -70.5570
+                def_s_gsd = 0.25
+                def_r_lon_min, def_r_lon_max = 21.0000, 24.5000
+                def_r_lat_min, def_r_lat_max = -72.5000, -68.0000
+                def_r_gsd = 80.0
+            else:
+                s_b = src_lunar.metadata.extra_attributes.get("bounds_geo") if (src_lunar and src_lunar.metadata) else None
+                r_b = ref_lunar.metadata.extra_attributes.get("bounds_geo") if (ref_lunar and ref_lunar.metadata) else None
+                def_s_lon_min, def_s_lat_min, def_s_lon_max, def_s_lat_max = s_b if s_b else (32.1085, -69.6912, 32.5580, -68.8496)
+                def_r_lon_min, def_r_lat_min, def_r_lon_max, def_r_lat_max = r_b if r_b else (31.0186, -72.4302, 33.9844, -66.1858)
+                def_s_gsd = float(selected_src_gsd)
+                def_r_gsd = float(selected_ref_gsd)
+
+            st.markdown("**Source / Moving Bounding Box (PRADAN):**")
+            col_sb1, col_sb2 = st.columns(2)
+            with col_sb1:
+                src_lon_min = st.number_input("Source Min Lon (°)", min_value=-180.0, max_value=180.0, value=float(def_s_lon_min), step=0.05, format="%.4f")
+                src_lat_min = st.number_input("Source Min Lat (°)", min_value=-90.0, max_value=90.0, value=float(def_s_lat_min), step=0.05, format="%.4f")
+            with col_sb2:
+                src_lon_max = st.number_input("Source Max Lon (°)", min_value=-180.0, max_value=180.0, value=float(def_s_lon_max), step=0.05, format="%.4f")
+                src_lat_max = st.number_input("Source Max Lat (°)", min_value=-90.0, max_value=90.0, value=float(def_s_lat_max), step=0.05, format="%.4f")
+            custom_src_gsd = st.number_input("Source GSD (m/px)", min_value=0.01, max_value=500.0, value=float(def_s_gsd), step=0.25)
+
+            st.markdown("**Reference / Fixed Bounding Box (PRADAN):**")
+            col_rb1, col_rb2 = st.columns(2)
+            with col_rb1:
+                ref_lon_min = st.number_input("Ref Min Lon (°)", min_value=-180.0, max_value=180.0, value=float(def_r_lon_min), step=0.05, format="%.4f")
+                ref_lat_min = st.number_input("Ref Min Lat (°)", min_value=-90.0, max_value=90.0, value=float(def_r_lat_min), step=0.05, format="%.4f")
+            with col_rb2:
+                ref_lon_max = st.number_input("Ref Max Lon (°)", min_value=-180.0, max_value=180.0, value=float(def_r_lon_max), step=0.05, format="%.4f")
+                ref_lat_max = st.number_input("Ref Max Lat (°)", min_value=-90.0, max_value=90.0, value=float(def_r_lat_max), step=0.05, format="%.4f")
+            custom_ref_gsd = st.number_input("Ref GSD (m/px)", min_value=0.01, max_value=500.0, value=float(def_r_gsd), step=1.0)
+
+            st.caption("💡 Coordinates can be copied directly from ISRO PRADAN GIS footprint popup or PDS4 XML label.")
+
+        else:
+            col_lat, col_lon = st.columns(2)
+            with col_lat:
+                gis_override_lat = st.number_input("Center Latitude (°)", min_value=-90.0, max_value=90.0, value=-70.0, step=0.1)
+            with col_lon:
+                gis_override_lon = st.number_input("Center Longitude (°)", min_value=-180.0, max_value=180.0, value=0.0, step=0.1)
+            col_sg, col_rg = st.columns(2)
+            with col_sg:
+                custom_src_gsd = st.number_input("Source GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_src_gsd), step=0.25)
+            with col_rg:
+                custom_ref_gsd = st.number_input("Ref GSD (m)", min_value=0.01, max_value=500.0, value=float(selected_ref_gsd), step=1.0)
 
 # Apply GIS overrides if active
-if override_gis and src_lunar is not None and ref_lunar is not None:
-    src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-    src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
-    ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
-    ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+if override_gis and src_lunar is not None and ref_lunar is not None and geodesy_mode is not None:
+    if "PRADAN" in geodesy_mode:
+        src_lunar.metadata.extra_attributes["bounds_geo"] = (float(src_lon_min), float(src_lat_min), float(src_lon_max), float(src_lat_max))
+        src_lunar.metadata.extra_attributes["center_longitude"] = (float(src_lon_min) + float(src_lon_max)) / 2.0
+        src_lunar.metadata.extra_attributes["center_latitude"] = (float(src_lat_min) + float(src_lat_max)) / 2.0
+        src_lunar.metadata.gsd = float(custom_src_gsd)
+
+        ref_lunar.metadata.extra_attributes["bounds_geo"] = (float(ref_lon_min), float(ref_lat_min), float(ref_lon_max), float(ref_lat_max))
+        ref_lunar.metadata.extra_attributes["center_longitude"] = (float(ref_lon_min) + float(ref_lon_max)) / 2.0
+        ref_lunar.metadata.extra_attributes["center_latitude"] = (float(ref_lat_min) + float(ref_lat_max)) / 2.0
+        ref_lunar.metadata.gsd = float(custom_ref_gsd)
+    else:
+        src_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+        src_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+        src_lunar.metadata.gsd = float(custom_src_gsd)
+        ref_lunar.metadata.extra_attributes["center_latitude"] = float(gis_override_lat)
+        ref_lunar.metadata.extra_attributes["center_longitude"] = float(gis_override_lon)
+        ref_lunar.metadata.gsd = float(custom_ref_gsd)
 
 # Apply role swapping if active
 if "swap_roles" not in st.session_state:
