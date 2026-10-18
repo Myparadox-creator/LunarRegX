@@ -102,14 +102,14 @@ with st.sidebar.container(border=True):
     st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">play_circle</span> Operation Mode</div>', unsafe_allow_html=True)
     mode_selection = st.segmented_control(
         "Operation Mode",
-        options=["SIH Judge Demo", "Custom Upload"],
-        default="SIH Judge Demo",
+        options=["Demo", "Custom Upload"],
+        default="Demo",
         label_visibility="collapsed"
     )
     if not mode_selection:
-        mode_selection = "SIH Judge Demo"
+        mode_selection = "Demo"
 
-    mode = "SIH Judge Demonstration Mode" if mode_selection == "SIH Judge Demo" else "Custom Registration & Upload"
+    mode = "Demo" if mode_selection == "Demo" else "Custom Registration & Upload"
 
 # Detect mode switch to prevent stale session state collisions
 if "current_mode" not in st.session_state:
@@ -183,7 +183,7 @@ ref_lunar = None
 # -------------------------------------------------------------
 # CARD 3: MISSION DATA / SCENARIO SELECTOR
 # -------------------------------------------------------------
-if "SIH Judge Demonstration Mode" in mode:
+if "Demo" in mode:
     with st.sidebar.container(border=True):
         st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">flight_takeoff</span> Prepared Flight Scenario</div>', unsafe_allow_html=True)
         scenario = st.selectbox(
@@ -630,7 +630,7 @@ if "reg_result" in st.session_state:
 
     # SIH Judge 11-Step Tour Tabs
     st.markdown("---")
-    st.subheader(":material/fact_check: SIH Judge Demonstration Walkthrough (11 Verification Stages)")
+    st.subheader(":material/fact_check: Demonstration Walkthrough (11 Verification Stages)")
 
     tab_titles = [
         "1. GIS & Footprint",
