@@ -44,38 +44,51 @@ class DeepCorrespondenceMatcher:
             try:
                 import kornia.feature as kf
                 from pathlib import Path
-                chk_file = Path(self.checkpoint_path)
+                chk_file = Path(self.checkpoint_path) if self.checkpoint_path else None
 
-                # Initialize base model architecture
-                try:
-                    self.model = kf.LoFTR(pretrained="outdoor").to(self.device)
-                except Exception:
-                    self.model = kf.LoFTR(pretrained=None).to(self.device)
-
-                # Priority 1: Check for lunar fine-tuned checkpoint
-                if chk_file.exists():
+                # Priority 1: Check for lunar fine-tuned checkpoint first (offline-safe, no network needed)
+                if chk_file and chk_file.is_file():
                     try:
+                        self.model = kf.LoFTR(pretrained=None).to(self.device)
                         chk_data = torch.load(str(chk_file), map_location=self.device)
                         state_dict = chk_data.get("state_dict", chk_data)
                         self.model.load_state_dict(state_dict)
                         self.active_backend = "LOFTR (Lunar Fine-Tuned)"
                         self.loftr_mode = "lunar_finetuned"
                         self.checkpoint_loaded = True
-                    except Exception as e:
-                        # Fallback to pretrained if loading fails
-                        self.active_backend = "LOFTR (Pretrained Outdoor Fallback)"
-                        self.loftr_mode = "pretrained"
+                        self.model.eval()
+                        return
+                    except Exception:
+                        # Checkpoint loading failed; fall through to pretrained or CNN
                         self.checkpoint_loaded = False
-                else:
+
+                # Priority 2: Attempt pretrained outdoor LoFTR (requires online download on first use)
+                try:
+                    self.model = kf.LoFTR(pretrained="outdoor").to(self.device)
                     self.active_backend = "LOFTR (Pretrained Outdoor Fallback)"
                     self.loftr_mode = "pretrained"
                     self.checkpoint_loaded = False
+                    self.model.eval()
+                    return
+                except Exception:
+                    # Pretrained weights unavailable (e.g. offline, timeout, download error)
+                    pass
 
-                self.model.eval()
+                # Priority 3: Fall back to CPU-optimized LightweightLunarNet CNN
+                self.fallback_model = LightweightLunarNet().eval()
+                self.active_backend = "FALLBACK_LUNARNET (Pretrained LoFTR unavailable)"
+                self.loftr_mode = "fallback_cnn"
+                self.checkpoint_loaded = False
+            except ImportError as e:
+                self.fallback_model = LightweightLunarNet().eval()
+                self.active_backend = f"FALLBACK_LUNARNET (kornia missing: {e})"
+                self.loftr_mode = "fallback_cnn"
+                self.checkpoint_loaded = False
             except Exception as e:
                 self.fallback_model = LightweightLunarNet().eval()
                 self.active_backend = f"FALLBACK_LUNARNET ({e})"
                 self.loftr_mode = "fallback_cnn"
+                self.checkpoint_loaded = False
         elif self.backend == "LIGHTGLUE":
             try:
                 import kornia.feature as kf

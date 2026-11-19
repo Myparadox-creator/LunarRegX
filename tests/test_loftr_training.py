@@ -40,7 +40,10 @@ def test_loftr_loss_autograd_gradients():
     assert has_coarse_grads, "LoFTR coarse transformer must receive gradients from LoFTRLoss"
     assert has_backbone_grads, "Backbone parameters must receive gradients from LoFTRLoss"
 
-def test_checkpoint_loading_and_fallback():
+def test_checkpoint_loading_and_fallback(monkeypatch):
+    pytest.importorskip("kornia")
+    import kornia.feature as kf
+
     # 1. Existing lunar fine-tuned checkpoint
     ckpt_path = Path("models/loftr/lunar_finetuned/best.ckpt")
     if ckpt_path.exists():
@@ -49,8 +52,26 @@ def test_checkpoint_loading_and_fallback():
         assert matcher.checkpoint_loaded is True
         assert "Lunar Fine-Tuned" in matcher.active_backend
 
-    # 2. Non-existent path triggers graceful fallback
-    fallback_matcher = DeepCorrespondenceMatcher(backend="LOFTR", checkpoint_path="non_existent/path.ckpt")
-    assert fallback_matcher.checkpoint_loaded is False
-    assert fallback_matcher.loftr_mode == "pretrained"
-    assert "Pretrained Outdoor Fallback" in fallback_matcher.active_backend
+    # 2. When checkpoint is absent, fallback to pretrained LoFTR (offline mock)
+    class MockPretrainedLoFTR(torch.nn.Module):
+        def __init__(self, pretrained=None):
+            super().__init__()
+            self.pretrained = pretrained
+        def forward(self, x):
+            return {"keypoints0": torch.empty((0, 2)), "keypoints1": torch.empty((0, 2)), "confidence": torch.empty((0,))}
+
+    monkeypatch.setattr(kf, "LoFTR", MockPretrainedLoFTR)
+    fallback_pretrained = DeepCorrespondenceMatcher(backend="LOFTR", checkpoint_path="non_existent/path.ckpt")
+    assert fallback_pretrained.checkpoint_loaded is False
+    assert fallback_pretrained.loftr_mode == "pretrained"
+    assert "Pretrained Outdoor Fallback" in fallback_pretrained.active_backend
+
+    # 3. When pretrained LoFTR fails (e.g. offline network failure), fallback to CNN
+    def mock_loftr_network_failure(*args, **kwargs):
+        raise OSError("Offline: simulated network failure downloading weights")
+
+    monkeypatch.setattr(kf, "LoFTR", mock_loftr_network_failure)
+    fallback_cnn = DeepCorrespondenceMatcher(backend="LOFTR", checkpoint_path="non_existent/path.ckpt")
+    assert fallback_cnn.checkpoint_loaded is False
+    assert fallback_cnn.loftr_mode == "fallback_cnn"
+    assert "FALLBACK_LUNARNET" in fallback_cnn.active_backend
