@@ -185,15 +185,16 @@ ref_lunar = None
 # -------------------------------------------------------------
 if "Demo" in mode:
     with st.sidebar.container(border=True):
-        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">flight_takeoff</span> Prepared Flight Scenario</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cockpit-title"><span class="material-symbols-outlined">science</span> Synthetic Benchmark Scenarios</div>', unsafe_allow_html=True)
+        st.caption("🧪 **Controlled Benchmarks:** Physics-simulated lunar DEMs (Hapke shading, power-law craters) designed to evaluate specific algorithmic challenges.")
         scenario = st.selectbox(
-            "Demonstration Scenarios",
+            "Benchmark Scenarios",
             [
-                "Scenario 1: Baseline Control (Low illumination delta)",
-                "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)",
-                "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)",
-                "Scenario 4: Viewpoint / Oblique Affine Shear",
-                "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)"
+                "Benchmark 1 (Synthetic): Baseline Control (Low illumination delta)",
+                "Benchmark 2 (Synthetic): Extreme 180° Shadow Reversal (Crater Illumination Flip)",
+                "Benchmark 3 (Synthetic): Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)",
+                "Benchmark 4 (Synthetic): Viewpoint / Oblique Affine Shear",
+                "Benchmark 5 (Synthetic): Polar Crater Terrain (Deep Shadow & Low Contrast)"
             ],
             label_visibility="collapsed"
         )
@@ -206,11 +207,11 @@ if "Demo" in mode:
             st.session_state.pop("reg_result", None)
 
         scen_info = {
-            "Scenario 1": ("Baseline Control", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Standard Overlap"),
-            "Scenario 2": ("180° Shadow Reversal", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Illumination Inversion"),
-            "Scenario 3": ("Multi-Scale Challenge", "OHRC 0.25m ↔ LROC 0.50m", "2× GSD Scale Ratio"),
-            "Scenario 4": ("Oblique Viewpoint", f"{selected_src_code} ↔ {selected_ref_code}", "Affine Perspective"),
-            "Scenario 5": ("Polar Crater Relief", f"{selected_src_code} ↔ {selected_ref_code}", "Deep Permanent Shadow")
+            "Benchmark 1": ("Baseline Control", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Standard Overlap"),
+            "Benchmark 2": ("180° Shadow Reversal", f"{selected_src_code} ({selected_src_gsd}m) ↔ {selected_ref_code} ({selected_ref_gsd}m)", "Illumination Inversion"),
+            "Benchmark 3": ("Multi-Scale Challenge", "OHRC 0.25m ↔ LROC 0.50m", "2× GSD Scale Ratio"),
+            "Benchmark 4": ("Oblique Viewpoint", f"{selected_src_code} ↔ {selected_ref_code}", "Affine Perspective"),
+            "Benchmark 5": ("Polar Crater Relief", f"{selected_src_code} ↔ {selected_ref_code}", "Deep Permanent Shadow")
         }
         for k, (name, sensors, tag) in scen_info.items():
             if k in scenario:
@@ -219,11 +220,11 @@ if "Demo" in mode:
                 break
 
         pair_files = {
-            "Scenario 1: Baseline Control (Low illumination delta)": (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"),
-            "Scenario 2: Extreme 180° Shadow Reversal (Crater Illumination Flip)": (samples_dir / "pair2_illumination_src.png", samples_dir / "pair2_illumination_ref.png"),
-            "Scenario 3: Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)": (samples_dir / "pair3_scale_src.png", samples_dir / "pair3_scale_ref.png"),
-            "Scenario 4: Viewpoint / Oblique Affine Shear": (samples_dir / "pair4_viewpoint_src.png", samples_dir / "pair4_viewpoint_ref.png"),
-            "Scenario 5: Polar Crater Terrain (Deep Shadow & Low Contrast)": (samples_dir / "pair5_polar_shadow_src.png", samples_dir / "pair5_polar_shadow_ref.png"),
+            "Benchmark 1 (Synthetic): Baseline Control (Low illumination delta)": (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"),
+            "Benchmark 2 (Synthetic): Extreme 180° Shadow Reversal (Crater Illumination Flip)": (samples_dir / "pair2_illumination_src.png", samples_dir / "pair2_illumination_ref.png"),
+            "Benchmark 3 (Synthetic): Multi-Scale (OHRC 0.25m vs LROC 0.5m GSD)": (samples_dir / "pair3_scale_src.png", samples_dir / "pair3_scale_ref.png"),
+            "Benchmark 4 (Synthetic): Viewpoint / Oblique Affine Shear": (samples_dir / "pair4_viewpoint_src.png", samples_dir / "pair4_viewpoint_ref.png"),
+            "Benchmark 5 (Synthetic): Polar Crater Terrain (Deep Shadow & Low Contrast)": (samples_dir / "pair5_polar_shadow_src.png", samples_dir / "pair5_polar_shadow_ref.png"),
         }
 
         src_path, ref_path = pair_files.get(scenario, (samples_dir / "pair1_baseline_src.png", samples_dir / "pair1_baseline_ref.png"))
@@ -274,15 +275,15 @@ else:
                 "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
                 "Chandrayaan-2 OHRC (Vikram Site, Sept 2019)": samples_dir / "real_ch2_ohrc_sept2019_vikram.png",
                 "Chandrayaan-2 IIRS (Hyperspectral, Oct 2023)": samples_dir / "real_ch2_iirs_infrared_pass.png",
-                "Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
-                "Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
+                "Synthetic Benchmark: Baseline Control Source": samples_dir / "pair1_baseline_src.png",
+                "Synthetic Benchmark: Extreme 180° Shadow Flip Ref": samples_dir / "pair2_illumination_ref.png"
             }
             flight_gsd_map = {
                 "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": (0.25, "OHRC"),
                 "Chandrayaan-2 OHRC (Vikram Site, Sept 2019)": (0.25, "OHRC"),
                 "Chandrayaan-2 IIRS (Hyperspectral, Oct 2023)": (80.0, "IIRS"),
-                "Benchmark: Baseline Control Source": (effective_src_gsd, selected_src_code),
-                "Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, selected_ref_code)
+                "Synthetic Benchmark: Baseline Control Source": (effective_src_gsd, selected_src_code),
+                "Synthetic Benchmark: Extreme 180° Shadow Flip Ref": (effective_ref_gsd, selected_ref_code)
             }
             src_name = st.selectbox("Source / Moving Image", list(available_flight.keys()), index=0)
             ref_name = st.selectbox("Reference / Fixed Image", list(available_flight.keys()), index=1)
