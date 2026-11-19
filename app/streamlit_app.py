@@ -767,7 +767,19 @@ if "reg_result" in st.session_state:
         geojson_bytes = json.dumps(res.export_control_points_geojson(), indent=2).encode('utf-8')
         json_bytes = res.metrics.to_json().encode('utf-8')
 
-        c_d1, c_d2, c_d3 = st.columns(3)
+        # In-memory GeoTIFF export with authentic CRS metadata
+        from src.warping.resampler import export_geotiff_bytes
+        ref_bounds = getattr(res.reference_image, 'bounds_projected', None)
+        ref_crs = getattr(res.reference_image, 'crs', None)
+        crs_wkt = ref_crs.to_wkt() if ref_crs is not None else None
+        geotiff_bytes = export_geotiff_bytes(
+            image_array=res.warped_image,
+            bounds_proj=ref_bounds,
+            crs_wkt=crs_wkt
+        )
+
+        c_d0, c_d1, c_d2, c_d3 = st.columns(4)
+        c_d0.download_button("Registered GeoTIFF", geotiff_bytes, file_name="lunar_registered_source.tif", mime="image/tiff", icon=":material/image:")
         c_d1.download_button("Control Points (CSV)", csv_bytes, file_name="lunar_control_points.csv", mime="text/csv", icon=":material/table_view:")
         c_d2.download_button("Control Points (GeoJSON)", geojson_bytes, file_name="lunar_control_points.geojson", mime="application/geo+json", icon=":material/map:")
         c_d3.download_button("Registration Metrics (JSON)", json_bytes, file_name="registration_metrics.json", mime="application/json", icon=":material/analytics:")

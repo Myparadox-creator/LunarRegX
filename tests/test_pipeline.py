@@ -39,3 +39,37 @@ def test_pipeline_export_dataframes():
     json_str = result.metrics.to_json()
     assert "rmse_total_px" in json_str
     assert "inlier_count" in json_str
+
+
+def test_geotiff_export_bytes():
+    import rasterio
+    from rasterio.io import MemoryFile
+    from src.warping.resampler import export_geotiff_bytes
+    from src.gis.lunar_crs import LunarCRS
+
+    # Synthesize test warped image array and Lunar CRS
+    test_img = np.arange(120 * 160, dtype=np.uint8).reshape((120, 160))
+    crs_obj = LunarCRS(projection_type="EQUIRECTANGULAR", center_lon_deg=0.0, center_lat_deg=0.0)
+    crs_wkt = crs_obj.to_wkt()
+    bounds_proj = (-500.0, -400.0, 500.0, 400.0)
+
+    geotiff_bytes = export_geotiff_bytes(
+        image_array=test_img,
+        bounds_proj=bounds_proj,
+        crs_wkt=crs_wkt
+    )
+    assert isinstance(geotiff_bytes, bytes)
+    assert len(geotiff_bytes) > 0
+
+    # Open with rasterio and verify dimensions, band count, CRS, and raster content
+    with MemoryFile(geotiff_bytes) as mem:
+        with mem.open() as ds:
+            assert ds.shape == (120, 160)
+            assert ds.count == 1
+            assert ds.crs is not None
+            # Verify Moon / IAU datum or projection is preserved
+            wkt = ds.crs.to_wkt().lower()
+            assert "moon" in wkt or "1737400" in wkt or ds.crs.is_projected
+            read_arr = ds.read(1)
+            np.testing.assert_array_equal(read_arr, test_img)
+

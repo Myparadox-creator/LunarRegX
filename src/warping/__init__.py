@@ -1,3 +1,3 @@
-from .resampler import ImageWarper
+from .resampler import ImageWarper, export_geotiff, export_geotiff_bytes
 
-__all__ = ["ImageWarper"]
+__all__ = ["ImageWarper", "export_geotiff", "export_geotiff_bytes"]

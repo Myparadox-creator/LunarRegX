@@ -132,3 +132,51 @@ def export_geotiff(
 
     return str(p)
 
+
+def export_geotiff_bytes(
+    image_array: np.ndarray,
+    bounds_proj: Optional[Tuple[float, float, float, float]] = None,
+    crs_wkt: Optional[str] = None,
+    nodata: float = 0.0
+) -> bytes:
+    """
+    Export registered image as in-memory GeoTIFF bytes preserving Lunar CRS and affine transform.
+    Keeps memory footprint low by utilizing rasterio MemoryFile.
+    """
+    import rasterio
+    from rasterio.io import MemoryFile
+    from rasterio.transform import from_bounds
+    from affine import Affine
+
+    h, w = image_array.shape[:2]
+    dtype = image_array.dtype
+
+    if bounds_proj is not None:
+        min_x, min_y, max_x, max_y = bounds_proj
+        transform = from_bounds(min_x, min_y, max_x, max_y, w, h)
+    else:
+        transform = Affine.translation(0, 0) * Affine.scale(1.0, -1.0)
+
+    count = 1 if image_array.ndim == 2 else image_array.shape[2]
+    meta = {
+        "driver": "GTiff",
+        "height": h,
+        "width": w,
+        "count": count,
+        "dtype": str(dtype),
+        "transform": transform,
+        "nodata": nodata
+    }
+    if crs_wkt:
+        meta["crs"] = rasterio.crs.CRS.from_wkt(crs_wkt)
+
+    with MemoryFile() as memfile:
+        with memfile.open(**meta) as dst:
+            if count == 1:
+                dst.write(image_array, 1)
+            else:
+                for b in range(count):
+                    dst.write(image_array[:, :, b], b + 1)
+        return memfile.read()
+
+
