@@ -11,8 +11,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C.svg?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Tests Passing](https://img.shields.io/badge/Tests-35%2F35%20Passing-brightgreen.svg?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/Myparadox-creator/LunarRegX)
-[![Accuracy](https://img.shields.io/badge/Sub--Pixel%20Accuracy-%3C%200.30%20px-9cf.svg?style=for-the-badge&logo=target&logoColor=white)](https://github.com/Myparadox-creator/LunarRegX)
+[![CI](https://img.shields.io/github/actions/workflow/status/Myparadox-creator/LunarRegX/ci.yml?branch=main&label=CI&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Myparadox-creator/LunarRegX/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 <br>
@@ -381,32 +380,59 @@ python train_loftr_lunar.py --epochs 5 --lr 1e-4 --batch_size 2
 
 ## 🧪 Automated Testing Suite
 
-The codebase is protected by **35 unit and integration tests** covering GIS math, phase congruency, deep matchers, sensor encoders, sub-pixel estimators, and API endpoints:
+The codebase is protected by **38 unit and integration tests** covering GIS math, phase congruency, deep matchers, sensor encoders, sub-pixel estimators, and API endpoints:
 
 ```bash
 python -m pytest tests -v
 ```
 
 ```
-================================= test session starts =================================
-collected 35 items
+============================= test session starts =============================
+platform win32 -- Python 3.12.3, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\ASUS\.gemini\antigravity\scratch\LunarRegX
+plugins: anyio-4.16.0
+collected 38 items
 
-tests/test_classical_matcher.py::test_sift_detection PASSED                    [  2%]
-tests/test_classical_matcher.py::test_akaze_detection PASSED                   [  5%]
-tests/test_deep_matcher.py::test_deep_matcher_initialization PASSED             [  8%]
-tests/test_deep_matcher.py::test_deep_matcher_synthetic_matching PASSED        [ 11%]
-tests/test_gis.py::test_lunar_crs_equirectangular_roundtrip PASSED              [ 14%]
-tests/test_gis.py::test_lunar_crs_polar_south PASSED                            [ 17%]
-tests/test_gis.py::test_footprint_intersection_calculation PASSED               [ 20%]
-tests/test_gis.py::test_common_roi_extraction PASSED                            [ 22%]
-tests/test_multimodal.py::test_ohrc_encoder PASSED                              [ 25%]
-tests/test_multimodal.py::test_tmc2_encoder PASSED                              [ 28%]
-tests/test_multimodal.py::test_iirs_hyperspectral_encoder PASSED                [ 31%]
-tests/test_phase_congruency.py::test_odd_dimension_log_gabor PASSED             [ 34%]
-...
-tests/test_pipeline.py::test_end_to_end_pipeline_execution PASSED               [100%]
+tests/test_api.py::test_health_endpoint PASSED                           [  2%]
+tests/test_api.py::test_sensors_endpoint PASSED                          [  5%]
+tests/test_api.py::test_benchmarks_endpoint PASSED                       [  7%]
+tests/test_api.py::test_benchmark_scenario_execution PASSED              [ 10%]
+tests/test_dataset_scanner.py::test_sensor_detection PASSED              [ 13%]
+tests/test_dataset_scanner.py::test_pair_generator_overlap PASSED        [ 15%]
+tests/test_dataset_scanner.py::test_pseudo_ground_truth_derivation PASSED [ 18%]
+tests/test_dataset_scanner.py::test_lunar_loftr_dataset PASSED           [ 21%]
+tests/test_dataset_validation.py::test_missing_file_raises_error PASSED  [ 23%]
+tests/test_dataset_validation.py::test_empty_file_raises_error PASSED    [ 26%]
+tests/test_dataset_validation.py::test_corrupt_file_raises_error PASSED  [ 28%]
+tests/test_dataset_validation.py::test_tiny_image_raises_error PASSED    [ 31%]
+tests/test_dataset_validation.py::test_valid_image_loads_successfully PASSED [ 34%]
+tests/test_deep_matcher.py::test_deep_matcher_initialization PASSED      [ 36%]
+tests/test_deep_matcher.py::test_deep_matcher_synthetic_matching PASSED  [ 39%]
+tests/test_geometry.py::test_similarity_transformation PASSED            [ 42%]
+tests/test_geometry.py::test_affine_transformation PASSED                [ 44%]
+tests/test_geometry.py::test_homography_transformation PASSED            [ 47%]
+tests/test_gis.py::test_lunar_crs_equirectangular_roundtrip PASSED       [ 50%]
+tests/test_gis.py::test_lunar_crs_polar_south PASSED                     [ 52%]
+tests/test_gis.py::test_footprint_intersection_calculation PASSED        [ 55%]
+tests/test_gis.py::test_common_roi_extraction PASSED                     [ 57%]
+tests/test_gis.py::test_gis_pre_registration_analyzer PASSED             [ 60%]
+tests/test_gis.py::test_bounds_geo_footprint_creation PASSED             [ 63%]
+tests/test_gis.py::test_multiscale_cross_sensor_roi_detection PASSED     [ 65%]
+tests/test_loftr_training.py::test_loftr_loss_autograd_gradients PASSED  [ 68%]
+tests/test_loftr_training.py::test_checkpoint_loading_and_fallback PASSED [ 71%]
+tests/test_multimodal.py::test_ohrc_encoder PASSED                       [ 73%]
+tests/test_multimodal.py::test_tmc2_encoder PASSED                       [ 76%]
+tests/test_multimodal.py::test_iirs_hyperspectral_encoder PASSED         [ 78%]
+tests/test_multimodal.py::test_sensor_dispatch_factory PASSED            [ 81%]
+tests/test_multimodal.py::test_lunar_physics_augmentation PASSED         [ 84%]
+tests/test_pipeline.py::test_pipeline_export_dataframes PASSED           [ 86%]
+tests/test_pipeline.py::test_geotiff_export_bytes PASSED                 [ 89%]
+tests/test_spatial.py::test_spatial_coverage_uniform_dispersion PASSED   [ 92%]
+tests/test_spatial.py::test_spatial_optimizer_clustering_suppression PASSED [ 94%]
+tests/test_subpixel.py::test_subpixel_refiner_known_shift PASSED         [ 97%]
+tests/test_synthetic_recovery.py::test_pipeline_recovers_known_transformation PASSED [100%]
 
-============================== 35 passed in 45.28s ==============================
+============================== 38 passed in 53.88s ==============================
 ```
 
 ---
@@ -416,22 +442,36 @@ tests/test_pipeline.py::test_end_to_end_pipeline_execution PASSED               
 ```
 LunarRegX/
 ├── api/                             # FastAPI REST API Backend Service
+│   ├── __init__.py
 │   └── main.py                      # Health, registration, and upload endpoints
 ├── app/                             # Streamlit Interactive Web Dashboard
 │   └── streamlit_app.py             # 11-Stage SIH Judge Walkthrough & Custom Reg
 ├── configs/                         # Sensor Profiles & Model Hyperparameters
-│   ├── default_config.yaml          # Default registration pipeline configuration
-│   └── loftr_lunar.yaml             # LoFTR lunar fine-tuning architecture config
+│   ├── iirs.yaml                    # Chandrayaan-2 IIRS sensor configuration
+│   ├── loftr_lunar.yaml             # LoFTR architecture configuration
+│   ├── lroc_nac.yaml                # LRO LROC-NAC sensor configuration
+│   ├── lroc_wac.yaml                # LRO LROC-WAC sensor configuration
+│   ├── ohrc.yaml                    # Chandrayaan-2 OHRC sensor configuration
+│   └── tmc2.yaml                    # Chandrayaan-2 TMC-2 sensor configuration
 ├── data/                            # Lunar Imagery & Flight Telemetry
 │   ├── raw/ch2/                     # PDS4 XML flight headers (OHRC, TMC-2, IIRS)
 │   └── samples/                     # Real Chandrayaan-2 & synthetic benchmark pairs
+├── docs/                            # Formal Documentation & Publications
+│   ├── LunarRegX_Technical_Report.md
+│   └── LunarRegX_Technical_Report.pdf
 ├── experiments/                     # Benchmark evaluation suite
+│   ├── ablation.py                  # 5-stage ablation pipeline runner
 │   └── benchmark.py                 # Multi-engine comparative evaluation runner
 ├── models/                          # Trained Weights & Checkpoints
 │   └── loftr/lunar_finetuned/       # LoFTR experimental fine-tuning config & training logs
+├── results/                         # Empirical Benchmark Data (CSVs & Artifacts)
+│   ├── ablation_results.csv         # Generated ablation study metrics
+│   └── benchmark_results.csv        # Generated 6-engine benchmark dataset
 ├── scripts/                         # Operational & Cartographic Utilities
-│   ├── ingest_pradan_product.py     # ISRO PRADAN PDS4 ZIP/TAR automated ingester
+│   ├── build_technical_report.py    # ReportLab 5-page PDF compiler
 │   ├── generate_lunar_benchmarks.py # Benchmark scenario generator
+│   ├── ingest_pradan_product.py     # ISRO PRADAN PDS4 ZIP/TAR automated ingester
+│   ├── make_readme_tables.py        # Automated Markdown table generator from CSVs
 │   └── verify_correspondences.py    # Visual tie-point correspondence inspector
 ├── src/                             # Core Algorithmic Framework
 │   ├── evaluation/                  # RMSE, residual diagnostics, failure detection
@@ -449,10 +489,26 @@ LunarRegX/
 │   ├── visualization/               # Match plots, checkerboards, error quivers
 │   ├── warping/                     # Bicubic image resampler, GeoTIFF exporter
 │   └── pipeline.py                  # Master End-to-End Registration Pipeline
-├── tests/                           # Comprehensive PyTest Test Suite (35 tests)
+├── tests/                           # Comprehensive PyTest Test Suite (38 tests)
+│   ├── test_api.py                  # REST API endpoints & payload verification
+│   ├── test_dataset_scanner.py      # PDS4 XML scanner & pseudo-GT derivation
+│   ├── test_dataset_validation.py   # Image loading, bit-depth, corruption guards
+│   ├── test_deep_matcher.py         # LoFTR & CNN deep feature matchers
+│   ├── test_geometry.py             # Similarity, Affine, Homography estimators
+│   ├── test_gis.py                  # IAU-2000 projections, footprints, intersections
+│   ├── test_loftr_training.py       # Loss gradient backprop & fallback hierarchy
+│   ├── test_multimodal.py           # OHRC/TMC-2/IIRS encoders & augmentation
+│   ├── test_pipeline.py             # End-to-end pipeline & in-memory GeoTIFF export
+│   ├── test_spatial.py              # ANMS dispersion & clustering suppression
+│   ├── test_subpixel.py             # 2D parabolic sub-pixel peak refiner
+│   └── test_synthetic_recovery.py   # Ground-truth geometric recovery validation
+├── app.py                           # Root entrypoint for Hugging Face Spaces
+├── streamlit_app.py                 # Root entrypoint for Streamlit Cloud
 ├── register.py                      # Production Command-Line Interface (CLI)
-├── train_loftr_lunar.py             # LoFTR Lunar Fine-Tuning CLI
+├── train_loftr_lunar.py             # LoFTR Lunar Fine-Tuning CLI (Experimental)
 ├── validate_lunar_dataset.py        # Lunar Dataset Scanner & Diagnostic Tool
+├── DEPLOYMENT.md                    # Streamlit Cloud, Docker, and REST deployment
+├── PROJECT_BRAIN.md                 # System architecture, invariants, and specs
 ├── requirements.txt                 # Pinned python dependencies
 └── README.md                        # Master Project Documentation
 ```

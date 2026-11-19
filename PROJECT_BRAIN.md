@@ -36,7 +36,7 @@
 4. **Sub-Pixel Precision Benchmark ($< 0.30\text{ px}$ RMSE)**:
    * Coarse matches must always be refined using **continuous 2D parabolic surface peak fitting** over the Normalized Cross-Correlation (NCC) surface:
      $$\Delta x = \frac{R(x-1, y) - R(x+1, y)}{2[R(x-1, y) - 2R(x, y) + R(x+1, y)]}$$
-   * Outlier rejection requires **RANSAC / MAGSAC++** coupled with **SVD Condition Number Guard** ($\kappa(H) < 1000$) to eliminate ill-conditioned degenerate geometries.
+   * Outlier rejection requires **RANSAC / MAGSAC++** coupled with **SVD Condition Number Guard** ($\kappa(H) \le 2000$ for Homography, $\kappa \le 8000$ for Affine) to eliminate ill-conditioned degenerate geometries.
 
 5. **Resource Envelope & Memory Safety (< 1 GB RAM Ceiling)**:
    * Streamlit Community Cloud enforces a strict **1 GB RAM** threshold.
