@@ -376,9 +376,9 @@ with st.sidebar.container(border=True):
     if engine_key == "LOFTR":
         loftr_ckpt = ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt"
         if loftr_ckpt.exists():
-            st.caption(":material/check_circle: **LoFTR:** Lunar Checkpoint Active (`best.ckpt`)")
+            st.caption(":material/science: **LoFTR:** Experimental Lunar Weights (`best.ckpt`, 1-epoch PoC)")
         else:
-            st.caption(":material/warning: **LoFTR:** Pretrained Outdoor Fallback")
+            st.caption(":material/info: **LoFTR (Pretrained):** Standard Outdoor Weights Active (`loftr_outdoor`)")
 
     model_choice = st.selectbox(
         "Transformation Model",
@@ -707,9 +707,9 @@ if "reg_result" in st.session_state:
         st.write(f"Identified {m.total_candidates} candidate matches across the scene using {feature_method}.")
         if res.matcher_info and "LOFTR" in str(res.matcher_info.get("active_backend", "")):
             if res.matcher_info.get("checkpoint_loaded"):
-                st.info(f"**Active LoFTR Weights:** Lunar Fine-Tuned Checkpoint (`{res.matcher_info.get('checkpoint_path')}`) | Supervised on calibrated lunar geometry.", icon=":material/verified:")
+                st.info(f"**Active LoFTR Weights:** Experimental Lunar Checkpoint (`{res.matcher_info.get('checkpoint_path')}`) | Note: 1-epoch proof-of-concept run. Benchmark shows standard pretrained weights perform robustly.", icon=":material/science:")
             else:
-                st.warning("**Active LoFTR Weights:** Pretrained Outdoor Fallback | No fine-tuned lunar checkpoint found.", icon=":material/warning:")
+                st.info("**Active LoFTR Weights:** Standard Pretrained Outdoor Model (`loftr_outdoor`) | Zero-shot deep transformer correspondence.", icon=":material/info:")
         st.image(res.vis_matches, caption="Candidate Matches (Green: Inliers | Red: Filtered Outliers)", use_container_width=True)
 
     with tabs[4]:

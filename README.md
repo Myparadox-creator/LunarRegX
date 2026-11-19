@@ -78,7 +78,7 @@ flowchart TD
 
     subgraph CORRESPONDENCE ["4. Multi-Engine Correspondence Matching"]
         K --> L1["⭐ PHASE_STRUCTURAL (Proposed Physics-Based): Log-Gabor Filter Bank + MIM"]
-        K --> L2["🚀 LOFTR (Deep Transformer): Lunar Fine-Tuned Checkpoint best.ckpt"]
+        K --> L2["🚀 LOFTR (Deep Transformer): Pretrained Outdoor / Experimental Lunar Checkpoint"]
         K --> L3["🔬 RIFT2 (Structural MIM)"]
         K --> L4["📐 SIFT (Baseline 1)"]
         K --> L5["⚡ AKAZE (Baseline 2)"]
@@ -121,7 +121,7 @@ The architecture preserves **6 distinct, pluggable algorithmic engines** directl
 │ Engine                         │ Methodology                               │ Best For    │
 ├────────────────────────────────┼───────────────────────────────────────────┼─────────────┤
 │ 1. PHASE_STRUCTURAL (Proposed) │ Log-Gabor Fourier Phase Congruency + MIM  │ 180° Shadow │
-│ 2. LOFTR (Deep Transformer)    │ Lunar Fine-Tuned Detector-Free Attention  │ Oblique/CNN │
+│ 2. LOFTR (Deep Transformer)    │ Pretrained Outdoor Dense Attention        │ Oblique/CNN │
 │ 3. RIFT2                       │ Structural Maximum Index Map Histograms   │ Multi-Modal │
 │ 4. SIFT (Baseline 1)           │ Scale-Invariant Feature Transform         │ Benchmark 1 │
 │ 5. AKAZE (Baseline 2)          │ Accelerated Non-Linear Scale Space        │ Benchmark 2 │
@@ -428,7 +428,7 @@ LunarRegX/
 ├── experiments/                     # Benchmark evaluation suite
 │   └── benchmark.py                 # Multi-engine comparative evaluation runner
 ├── models/                          # Trained Weights & Checkpoints
-│   └── loftr/lunar_finetuned/       # LoFTR lunar fine-tuned checkpoint config & logs
+│   └── loftr/lunar_finetuned/       # LoFTR experimental fine-tuning config & training logs
 ├── scripts/                         # Operational & Cartographic Utilities
 │   ├── ingest_pradan_product.py     # ISRO PRADAN PDS4 ZIP/TAR automated ingester
 │   ├── generate_lunar_benchmarks.py # Benchmark scenario generator

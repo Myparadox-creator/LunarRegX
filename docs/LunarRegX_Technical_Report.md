@@ -260,7 +260,7 @@ All three encoders output a **Common Terrain Structural Representation** -- a no
 
 Transformer-based dense correspondence matching:
 - **LoFTR**: Self + cross-attention transformers for detector-free matching (Sun et al., CVPR 2021)
-- Supports loading **lunar fine-tuned checkpoints** (`models/loftr/lunar_finetuned/best.ckpt`)
+- Supports loading **pretrained outdoor weights** (`loftr_outdoor`) or **experimental lunar checkpoints** (`models/loftr/lunar_finetuned/best.ckpt`)
 - **LightGlue**: Adaptive graph neural network matching
 - **LightweightLunarNet**: 4-layer CNN fallback with Kaiming-initialized gradient filters -- ensures the pipeline never fails even without GPU
 
@@ -482,7 +482,7 @@ Loads lunar crater image pairs with ground truth correspondences for LoFTR train
 python train_loftr_lunar.py --epochs 5 --lr 1e-4 --batch_size 2
 ```
 
-Outputs fine-tuned checkpoint to `models/loftr/lunar_finetuned/best.ckpt`
+Experimental training script outputting checkpoint to `models/loftr/lunar_finetuned/best.ckpt` (requires GPU compute). Cloud and clone deployments run with standard pretrained outdoor weights.
 
 ---
 

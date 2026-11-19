@@ -85,4 +85,30 @@ python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 * **OpenAPI Schema:** `http://localhost:8000/openapi.json`
 * **Health Check:** `http://localhost:8000/health`
 * **Supported Sensors:** `http://localhost:8000/sensors`
-* **Benchmark Results:** `http://localhost:8000/benchmarks`
+* **Benchmark Results:** `http://localhost:8000/benchmarks`
+
+---
+
+## 🧠 4. LoFTR Model Weights & Domain Adaptation Status
+
+### Honest Weights Policy
+Deep transformer feature matching via LoFTR in LunarRegX operates under an honest weight disclosure policy:
+1. **Default Production Deployment:** The deployed Streamlit dashboard and REST API utilize the standard pretrained outdoor LoFTR checkpoint (`loftr_outdoor`), which downloads automatically into PyTorch Hub cache or uses cached weights. Pretrained LoFTR delivers strong zero-shot deep dense correspondence across scale changes (0.34 px on Pair 3) and shear distortions (0.32 px on Pair 4).
+2. **Experimental Fine-Tuning Script:** The repository includes `train_loftr_lunar.py`, an experimental PyTorch Lightning / PyTorch training harness for fine-tuning LoFTR on paired lunar surface swaths. A preliminary 1-epoch proof-of-concept run was performed (`models/loftr/lunar_finetuned/training_log.json`, train loss 13.69, val loss 14.07). Because `.ckpt` binary files (~46 MB) are gitignored according to open-source best practices, fresh repository clones and cloud containers operate with pretrained outdoor weights.
+3. **Reproducing or Continuing Lunar Training:**
+   To train a production-converged lunar LoFTR checkpoint, a workstation or cluster with an NVIDIA GPU (CUDA compute capability >= 7.0, minimum 16 GB VRAM) is required:
+   ```bash
+   python train_loftr_lunar.py --data_dir data/samples --epochs 50 --batch_size 4 --lr 1e-4
+   ```
+   Trained checkpoints saved to `models/loftr/lunar_finetuned/best.ckpt` will be automatically detected and loaded by `DeepCorrespondenceMatcher` if present.
+
+---
+
+## 📁 5. Root Entrypoint Architecture (`streamlit_app.py` vs `app.py`)
+
+The repository contains two thin wrapper files at the root:
+* **`streamlit_app.py`**: Default entrypoint detected by **Streamlit Community Cloud**. It ensures `ROOT_DIR` is in `sys.path` and dispatches cleanly to `app/streamlit_app.py`.
+* **`app.py`**: Default entrypoint detected by **Hugging Face Spaces** (Docker and Streamlit Spaces). It mirrors the same clean dispatch to `app/streamlit_app.py`.
+
+Both wrappers prevent path-resolution issues on cloud platforms without duplicating UI code.
+
