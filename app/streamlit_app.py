@@ -26,6 +26,13 @@ from src.io.dataset import LunarImage, load_lunar_image
 from src.io.metadata import SensorMetadata
 from src.pipeline import LunarRegistrationPipeline, RegistrationPipelineConfig
 from src.gis.pre_registration import GISPreRegistrationAnalyzer
+from typing import Optional
+
+@st.cache_resource(show_spinner=False)
+def get_cached_deep_matcher(backend: str = "LOFTR", checkpoint_path: Optional[str] = None):
+    """Cache deep matcher in Streamlit resource cache to prevent repeated re-initialization and memory spikes."""
+    from src.features.deep_matcher import DeepCorrespondenceMatcher
+    return DeepCorrespondenceMatcher(backend=backend, checkpoint_path=checkpoint_path)
 
 st.set_page_config(
     page_title="LunarRegX | GIS-Assisted Lunar Image Registration",
@@ -380,6 +387,7 @@ with st.sidebar.container(border=True):
             st.caption(":material/science: **LoFTR:** Experimental Lunar Weights (`best.ckpt`, 1-epoch PoC)")
         else:
             st.caption(":material/info: **LoFTR (Pretrained):** Standard Outdoor Weights Active (`loftr_outdoor`)")
+        st.caption("💡 *Memory Profile:* Pretrained weights cached via `@st.cache_resource`. For lowest memory footprint on constrained 1 GB hosts, **PHASE_STRUCTURAL** is recommended.")
 
     model_choice = st.selectbox(
         "Transformation Model",
@@ -574,13 +582,19 @@ if src_lunar is not None and ref_lunar is not None:
     if st.button("EXECUTE REGISTRATION PIPELINE", type="primary", icon=":material/rocket_launch:", use_container_width=True):
         with st.spinner("Executing GIS-assisted multi-modal registration pipeline..."):
             try:
+                cached_matcher = None
+                if engine_key in ["LOFTR", "LIGHTGLUE"]:
+                    ckpt_p = str(ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt") if (ROOT_DIR / "models" / "loftr" / "lunar_finetuned" / "best.ckpt").exists() else None
+                    cached_matcher = get_cached_deep_matcher(backend="LOFTR", checkpoint_path=ckpt_p)
+
                 cfg = RegistrationPipelineConfig(
                     feature_method=engine_key,
                     preferred_model=model_key,
                     use_gis_pre_registration=use_gis,
                     use_multimodal_encoder=use_multimodal,
                     use_spatial_anms=use_anms,
-                    use_subpixel=use_subpixel
+                    use_subpixel=use_subpixel,
+                    deep_matcher=cached_matcher
                 )
                 pipeline = LunarRegistrationPipeline(config=cfg)
                 res = pipeline.run(src_lunar, ref_lunar)

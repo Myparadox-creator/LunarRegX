@@ -28,8 +28,6 @@ from src.illumination.phase_congruency import LogGaborPhaseCongruency
 from src.illumination.reliability import compute_terrain_reliability
 from src.features.classical import ClassicalFeatureEngine
 from src.features.phase_structural import PhaseStructuralEngine
-from src.features.learned_adapter import LearnedFeatureEngine
-from src.features.deep_matcher import DeepCorrespondenceMatcher
 from src.matching.matcher import CorrespondenceMatcher, Correspondence
 from src.spatial.anms import SpatialOptimizer
 from src.spatial.coverage import compute_spatial_coverage
@@ -65,6 +63,7 @@ class RegistrationPipelineConfig:
     subpixel_search_radius: int = 4
     independent_val_split: float = 0.20       # 20% held-out checkpoints
     checkpoint_path: Optional[str] = None     # Custom checkpoint override (e.g. for LoFTR)
+    deep_matcher: Optional[Any] = None        # Pre-cached deep matcher instance (e.g. via st.cache_resource)
 
 @dataclass
 class RegistrationOutput:
@@ -162,10 +161,14 @@ class LunarRegistrationPipeline:
         # 1. Feature / Matcher Engine
         self.is_deep_matcher = m in ["LOFTR", "LIGHTGLUE", "DEEP_MATCHER"]
         if self.is_deep_matcher:
-            self.deep_matcher = DeepCorrespondenceMatcher(
-                backend="LOFTR" if "LOFTR" in m else "LIGHTGLUE",
-                checkpoint_path=cfg.checkpoint_path
-            )
+            if getattr(cfg, "deep_matcher", None) is not None:
+                self.deep_matcher = cfg.deep_matcher
+            else:
+                from src.features.deep_matcher import DeepCorrespondenceMatcher
+                self.deep_matcher = DeepCorrespondenceMatcher(
+                    backend="LOFTR" if "LOFTR" in m else "LIGHTGLUE",
+                    checkpoint_path=cfg.checkpoint_path
+                )
             self.feature_engine = None
         elif m in ["SIFT", "AKAZE", "ORB"]:
             self.feature_engine = ClassicalFeatureEngine(method=m)
@@ -174,6 +177,7 @@ class LunarRegistrationPipeline:
             self.feature_engine = PhaseStructuralEngine()
             self.deep_matcher = None
         elif m == "LEARNED":
+            from src.features.learned_adapter import LearnedFeatureEngine
             self.feature_engine = LearnedFeatureEngine()
             self.deep_matcher = None
         else:
