@@ -168,20 +168,24 @@ $$\kappa(H) = \frac{\sigma_{\max}(H)}{\sigma_{\min}(H)}$$
 
 ## 📊 Comprehensive Benchmark Evaluation
 
-Evaluated across authentic Chandrayaan-2 and LRO lunar flight benchmark scenarios:
+Evaluated across authentic Chandrayaan-2 and LRO lunar challenge scenarios (reproducible via `python experiments/benchmark.py`):
 
-| Scenario | Proposed Phase-Structural | LoFTR (Lunar Fine-Tuned) | RIFT2 | SIFT (Baseline 1) | AKAZE (Baseline 2) | Learned LunarNet |
+| Scenario | Proposed Phase-Structural | LoFTR (pretrained) | RIFT2 | SIFT (Baseline 1) | AKAZE (Baseline 2) | Learned LunarNet |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1. Baseline Control** (Low $\Delta\text{Az}$) | **0.24 px** (96% Inl) | 0.28 px (94% Inl) | 0.35 px (91% Inl) | 0.42 px (88% Inl) | 0.51 px (82% Inl) | 0.65 px (75% Inl) |
-| **2. Extreme 180° Shadow Flip** | **0.29 px** (91% Inl) | 0.42 px (78% Inl) | 0.39 px (84% Inl) | ❌ Failed (0 Inl) | ❌ Failed (0 Inl) | 0.88 px (42% Inl) |
-| **3. Multi-Scale (0.25m vs 0.50m)** | **0.31 px** (89% Inl) | 0.35 px (85% Inl) | 0.44 px (79% Inl) | 0.78 px (48% Inl) | 0.92 px (36% Inl) | 0.95 px (34% Inl) |
-| **4. Oblique Viewpoint Shear** | 0.38 px (86% Inl) | **0.32 px** (91% Inl) | 0.46 px (77% Inl) | 0.85 px (41% Inl) | 0.98 px (32% Inl) | 1.12 px (28% Inl) |
-| **5. Polar Shadow & Noise** | **0.34 px** (87% Inl) | 0.48 px (72% Inl) | 0.49 px (74% Inl) | ❌ Failed (0 Inl) | ❌ Failed (0 Inl) | 0.99 px (31% Inl) |
-| **Average Inlier Ratio** | **90.8%** | 84.0% | 81.0% | 35.4% | 30.0% | 42.0% |
-| **Independent Validation RMSE** | **0.29 px** | 0.37 px | 0.43 px | 0.68 px | 0.80 px | 0.92 px |
+| **1. Baseline Control (Low $\Delta\text{Az}$)** | **0.42 px (99.2% Inl)** | 0.78 px (100.0% Inl) | 1.49 px (83.2% Inl) | 1.02 px (92.7% Inl) | 0.95 px (95.2% Inl) | 0.70 px (20.2% Inl) |
+| **2. Extreme 180° Shadow Flip** | **1.68 px (79.2% Inl)** | 1.36 px (13.0% Inl) | 1.81 px (80.1% Inl) | ❌ Failed (4 Inl, 8.0%) | ❌ Failed (4 Inl, 8.7%) | ❌ Failed (4 Inl, 4.3%) |
+| **3. Multi-Scale (0.25m vs 0.50m)** | 1.48 px (80.3% Inl) | 0.34 px (100.0% Inl) | 1.37 px (76.1% Inl) | 0.45 px (95.8% Inl) | 0.57 px (96.2% Inl) | **0.33 px (13.1% Inl)** |
+| **4. Oblique Viewpoint Shear** | 0.73 px (96.5% Inl) | **0.32 px (100.0% Inl)** | 1.33 px (84.3% Inl) | 0.40 px (97.9% Inl) | 0.53 px (98.9% Inl) | 0.35 px (77.9% Inl) |
+| **5. Polar Shadow & Noise** | ❌ Failed (7 Inl, 53.8%) | **1.84 px (44.0% Inl)** | ❌ Failed (7 Inl, 46.7%) | ❌ Failed (4 Inl, 7.4%) | ❌ Failed (4 Inl, 8.9%) | ❌ Failed (7 Inl, 6.7%) |
+| **Average Inlier Ratio** | 81.8% | 71.4% | 74.1% | 60.4% | 61.6% | 24.4% |
+| **Average Inlier RMSE** | 1.08 px | 0.93 px | 1.50 px | 0.62 px | 0.68 px | 0.46 px |
 
 > [!TIP]
-> **Key Finding:** Under $180^\circ$ solar azimuth inversion (Scenario 2) and polar deep shadows (Scenario 5), **classical gradient methods (SIFT, AKAZE) completely fail (0 inliers)** because gradients invert. The **Proposed Phase-Structural** engine preserves structural symmetry and maintains sub-pixel precision ($< 0.30\text{ px}$).
+> **Key Empirical Findings:**
+> * **180° Shadow Flip Invariance (Scenario 2):** Classical gradient-based detectors (SIFT, AKAZE) and standard CNN adapters collapse (only 4 inliers / <9% inlier ratio) due to gradient sign reversal on sunlit vs. shadowed crater slopes. In contrast, **Proposed Phase-Structural** (79.2% inliers, 1.68 px RMSE) and RIFT2 (80.1% inliers, 1.81 px RMSE) succeed by leveraging illumination-invariant Fourier phase congruency.
+> * **Viewpoint & Multi-Scale Disparity (Scenarios 3 & 4):** Dense transformer matching in **LoFTR (pretrained)** excels under affine and perspective viewpoint shear (0.32 px RMSE) and resolution jumps (0.34 px RMSE).
+> * **Polar Low-Contrast Terrain (Scenario 5):** Dense attention (LoFTR) is resilient in low-contrast permanent shadow areas (299 inliers), where sparse keypoint detectors fail to find sufficient salient corners.
+> * **Benign Control (Scenario 1):** Under consistent illumination, the **Proposed Phase-Structural** pipeline achieves the highest inlier ratio (99.2%) and sub-half-pixel accuracy (0.42 px).
 
 ---
 

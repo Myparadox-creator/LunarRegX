@@ -1,11 +1,36 @@
 scenario,method,engine,weights_mode,total_candidates,inlier_count,inlier_ratio,rmse_pixels,physical_error_m,grid_coverage,runtime_sec,model_selected,status
-Pair 1: Low Illumination Delta,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,238,49,0.257,0.711,0.71,0.3,3.69,HOMOGRAPHY,WARNING
-Pair 1: Low Illumination Delta,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,239,50,0.26,0.62,0.62,0.33,3.95,HOMOGRAPHY,WARNING
-Pair 2: 180° Shadow Reversal,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,177,4,0.028,0.564,0.56,0.03,4.06,AFFINE,FAILURE
-Pair 2: 180° Shadow Reversal,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,204,4,0.024,1.158,1.16,0.04,5.88,AFFINE,FAILURE
-Pair 3: Multi-Scale (OHRC vs LROC),Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,194,19,0.122,0.46,0.46,0.17,4.37,AFFINE,WARNING
-Pair 3: Multi-Scale (OHRC vs LROC),Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,208,25,0.15,0.42,0.42,0.21,4.59,AFFINE,WARNING
-Pair 4: Viewpoint / Affine Shear,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,292,128,0.547,0.38,0.38,0.6,6.67,HOMOGRAPHY,SUCCESS
-Pair 4: Viewpoint / Affine Shear,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,278,127,0.57,0.385,0.39,0.64,5.53,HOMOGRAPHY,SUCCESS
-Pair 5: Polar Crater Deep Shadow,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,199,9,0.056,0.686,0.69,0.09,5.37,SIMILARITY,FAILURE
-Pair 5: Polar Crater Deep Shadow,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,220,11,0.062,0.672,0.67,0.1,8.94,AFFINE,FAILURE
+Pair 1: Low Illumination Delta,Baseline 1 (SIFT + RANSAC),SIFT,classical_or_phase,629,467,0.927,1.024,1.02,0.98,2.07,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 2 (AKAZE),AKAZE,classical_or_phase,1022,779,0.952,0.948,0.95,0.88,2.65,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 3 (Learned CNN),LEARNED,classical_or_phase,129,21,0.202,0.701,0.7,0.17,2.74,HOMOGRAPHY,WARNING
+Pair 1: Low Illumination Delta,Baseline 4 (RIFT2),RIFT2,classical_or_phase,237,158,0.832,1.49,1.49,0.61,5.47,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,3241,2592,1.0,0.78,0.78,1.0,6.41,HOMOGRAPHY,SUCCESS
+Pair 1: Low Illumination Delta,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,243,47,0.241,0.617,0.62,0.32,4.61,HOMOGRAPHY,WARNING
+Pair 1: Low Illumination Delta,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,classical_or_phase,237,127,0.992,0.423,0.42,0.62,5.23,HOMOGRAPHY,SUCCESS
+Pair 2: 180° Shadow Reversal,Baseline 1 (SIFT + RANSAC),SIFT,classical_or_phase,62,4,0.08,0.0,0.0,0.03,1.83,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 2 (AKAZE),AKAZE,classical_or_phase,57,4,0.087,0.169,0.17,0.04,1.8,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 3 (Learned CNN),LEARNED,classical_or_phase,115,4,0.043,1.09,1.09,0.04,2.19,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Baseline 4 (RIFT2),RIFT2,classical_or_phase,213,137,0.801,1.808,1.81,0.57,5.18,HOMOGRAPHY,SUCCESS
+Pair 2: 180° Shadow Reversal,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,278,29,0.13,1.362,1.36,0.15,4.25,AFFINE,WARNING
+Pair 2: 180° Shadow Reversal,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,196,4,0.025,1.245,1.24,0.04,4.52,AFFINE,FAILURE
+Pair 2: 180° Shadow Reversal,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,classical_or_phase,213,99,0.792,1.682,1.68,0.54,5.35,HOMOGRAPHY,SUCCESS
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 1 (SIFT + RANSAC),SIFT,classical_or_phase,451,346,0.958,0.449,0.45,0.6,1.88,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 2 (AKAZE),AKAZE,classical_or_phase,524,404,0.962,0.566,0.57,0.44,1.89,SIMILARITY,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 3 (Learned CNN),LEARNED,classical_or_phase,123,13,0.131,0.329,0.33,0.11,2.24,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 4 (RIFT2),RIFT2,classical_or_phase,115,70,0.761,1.373,1.37,0.32,5.29,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,1979,1584,1.0,0.337,0.34,0.61,5.13,SIMILARITY,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,203,19,0.117,0.404,0.4,0.15,4.44,AFFINE,WARNING
+Pair 3: Multi-Scale (OHRC vs LROC),Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,classical_or_phase,115,53,0.803,1.483,1.48,0.34,5.2,AFFINE,WARNING
+Pair 4: Viewpoint / Affine Shear,Baseline 1 (SIFT + RANSAC),SIFT,classical_or_phase,819,642,0.979,0.402,0.4,0.94,1.82,AFFINE,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 2 (AKAZE),AKAZE,classical_or_phase,1128,893,0.989,0.527,0.53,0.82,1.86,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 3 (Learned CNN),LEARNED,classical_or_phase,299,187,0.779,0.354,0.35,0.79,2.15,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 4 (RIFT2),RIFT2,classical_or_phase,287,194,0.843,1.331,1.33,0.61,5.34,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,3111,2489,1.0,0.321,0.32,0.94,5.73,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,295,138,0.585,0.361,0.36,0.7,4.32,HOMOGRAPHY,SUCCESS
+Pair 4: Viewpoint / Affine Shear,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,classical_or_phase,287,136,0.965,0.727,0.73,0.62,5.32,HOMOGRAPHY,SUCCESS
+Pair 5: Polar Crater Deep Shadow,Baseline 1 (SIFT + RANSAC),SIFT,classical_or_phase,67,4,0.074,0.0,0.0,0.03,1.83,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 2 (AKAZE),AKAZE,classical_or_phase,56,4,0.089,0.156,0.16,0.03,1.86,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 3 (Learned CNN),LEARNED,classical_or_phase,131,7,0.067,0.528,0.53,0.06,2.15,AFFINE,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 4 (RIFT2),RIFT2,classical_or_phase,18,7,0.467,1.435,1.43,0.07,5.18,SIMILARITY,FAILURE
+Pair 5: Polar Crater Deep Shadow,Baseline 5a (LoFTR Pretrained),LOFTR,pretrained,849,299,0.44,1.836,1.84,0.79,4.46,HOMOGRAPHY,SUCCESS
+Pair 5: Polar Crater Deep Shadow,Baseline 5b (LoFTR Lunar Fine-Tuned),LOFTR,lunar_finetuned,201,8,0.05,0.283,0.28,0.08,4.45,SIMILARITY,FAILURE
+Pair 5: Polar Crater Deep Shadow,Proposed (GIS-Assisted Hybrid),PHASE_STRUCTURAL,classical_or_phase,18,7,0.538,0.984,0.98,0.06,5.07,AFFINE,FAILURE

@@ -408,20 +408,23 @@ Prevents degenerate homography matrices from causing unphysical warping on lunar
 
 ## 7. Benchmark Results and Performance
 
-Evaluated across 5 authentic Chandrayaan-2 and LRO lunar flight scenarios:
+Evaluated across 5 authentic Chandrayaan-2 and LRO lunar challenge scenarios:
 
-| Scenario | Phase-Structural | LoFTR | RIFT2 | SIFT | AKAZE | LunarNet |
+| Scenario | Proposed Phase-Structural | LoFTR (pretrained) | RIFT2 | SIFT (Baseline 1) | AKAZE (Baseline 2) | Learned LunarNet |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **1. Baseline Control** | **0.24 px** (96%) | 0.28 px (94%) | 0.35 px (91%) | 0.42 px (88%) | 0.51 px (82%) | 0.65 px (75%) |
-| **2. 180 deg Shadow Flip** | **0.29 px** (91%) | 0.42 px (78%) | 0.39 px (84%) | FAILED | FAILED | 0.88 px (42%) |
-| **3. Multi-Scale (0.25m vs 0.50m)** | **0.31 px** (89%) | 0.35 px (85%) | 0.44 px (79%) | 0.78 px (48%) | 0.92 px (36%) | 0.95 px (34%) |
-| **4. Oblique Viewpoint** | 0.38 px (86%) | **0.32 px** (91%) | 0.46 px (77%) | 0.85 px (41%) | 0.98 px (32%) | 1.12 px (28%) |
-| **5. Polar Shadow and Noise** | **0.34 px** (87%) | 0.48 px (72%) | 0.49 px (74%) | FAILED | FAILED | 0.99 px (31%) |
-| **Average Inlier Ratio** | **90.8%** | 84.0% | 81.0% | 35.4% | 30.0% | 42.0% |
-| **Validation RMSE** | **0.29 px** | 0.37 px | 0.43 px | 0.68 px | 0.80 px | 0.92 px |
+| **1. Baseline Control (Low $\Delta\text{Az}$)** | **0.42 px (99.2% Inl)** | 0.78 px (100.0% Inl) | 1.49 px (83.2% Inl) | 1.02 px (92.7% Inl) | 0.95 px (95.2% Inl) | 0.70 px (20.2% Inl) |
+| **2. Extreme 180° Shadow Flip** | **1.68 px (79.2% Inl)** | 1.36 px (13.0% Inl) | 1.81 px (80.1% Inl) | ❌ Failed (4 Inl, 8.0%) | ❌ Failed (4 Inl, 8.7%) | ❌ Failed (4 Inl, 4.3%) |
+| **3. Multi-Scale (0.25m vs 0.50m)** | 1.48 px (80.3% Inl) | 0.34 px (100.0% Inl) | 1.37 px (76.1% Inl) | 0.45 px (95.8% Inl) | 0.57 px (96.2% Inl) | **0.33 px (13.1% Inl)** |
+| **4. Oblique Viewpoint Shear** | 0.73 px (96.5% Inl) | **0.32 px (100.0% Inl)** | 1.33 px (84.3% Inl) | 0.40 px (97.9% Inl) | 0.53 px (98.9% Inl) | 0.35 px (77.9% Inl) |
+| **5. Polar Shadow & Noise** | ❌ Failed (7 Inl, 53.8%) | **1.84 px (44.0% Inl)** | ❌ Failed (7 Inl, 46.7%) | ❌ Failed (4 Inl, 7.4%) | ❌ Failed (4 Inl, 8.9%) | ❌ Failed (7 Inl, 6.7%) |
+| **Average Inlier Ratio** | 81.8% | 71.4% | 74.1% | 60.4% | 61.6% | 24.4% |
+| **Average Inlier RMSE** | 1.08 px | 0.93 px | 1.50 px | 0.62 px | 0.68 px | 0.46 px |
 
 > [!IMPORTANT]
-> **Critical Finding:** Under 180 deg solar azimuth inversion (Scenario 2) and polar deep shadows (Scenario 5), SIFT and AKAZE completely fail with 0 inliers -- their gradient-based descriptors invert when illumination flips. The Phase-Structural engine maintains < 0.30 px accuracy because phase congruency is fundamentally illumination-invariant.
+> **Key Empirical Findings:**
+> * Under 180° solar azimuth inversion (Scenario 2), SIFT, AKAZE, and the CNN collapse (only 4 inliers / <9% inlier ratio) because intensity gradients invert. The Proposed Phase-Structural engine preserves structural symmetry (79.2% inliers, 1.68 px RMSE), matching RIFT2's resilience.
+> * Under viewpoint shear (Scenario 4) and multi-scale disparity (Scenario 3), LoFTR (pretrained) achieves superior sub-half-pixel accuracy (0.32 px) through dense receptive fields.
+> * In permanent polar shadow (Scenario 5), dense attention in LoFTR recovers 299 inliers, whereas sparse corner detectors fail to isolate sufficient feature points.
 
 ---
 

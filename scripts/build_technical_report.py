@@ -322,7 +322,7 @@ def create_report(output_pdf_path: str):
 
     story.append(Paragraph("3. The Expected <u>Solution</u> & End-to-End System Workflow", h1_style))
     story.append(Paragraph(
-        "To solve this problem, we designed and built <b>LunarRegX</b>: a generic, modular software suite engineered specifically for autonomous, sub-pixel co-registration of Chandrayaan-2 optical swaths against lunar reference maps. The software achieves sub-pixel alignment accuracy (<0.30 px), enforces spatially uniform tie-point distribution across the lunar terrain, and exports production-grade cartographic files ready for GIS software and flight mission planning.",
+        "To solve this problem, we designed and built <b>LunarRegX</b>: a generic, modular software suite engineered specifically for autonomous, sub-pixel co-registration of Chandrayaan-2 optical swaths against lunar reference maps. The software achieves sub-half-pixel alignment accuracy under controlled illumination (0.42 px on Baseline Control), enforces spatially uniform tie-point distribution across the lunar terrain, and exports production-grade cartographic files ready for GIS software and flight mission planning.",
         body_style
     ))
     story.append(Spacer(1, 2))
@@ -413,7 +413,7 @@ def create_report(output_pdf_path: str):
         "Discrete digital images restrict keypoint matches to integer pixel coordinates (x, y). However, planetary mapping requires sub-pixel precision. LunarRegX extracts a 3×3 patch around each candidate match on the Normalized Cross-Correlation (NCC) response surface and fits a continuous 2D second-order polynomial: "
         "<font face='Courier' size='6.8'>S(&Delta;x, &Delta;y) = a &Delta;x<sup>2</sup> + b &Delta;y<sup>2</sup> + c &Delta;x &Delta;y + d &Delta;x + e &Delta;y + f</font>. "
         "The exact continuous displacement vector (&Delta;x*, &Delta;y*) is solved analytically by setting the gradient to zero: "
-        "<font face='Courier' size='6.8'>[&Delta;x*, &Delta;y*]<sup>T</sup> = - [2a, c; c, 2b]<sup>-1</sup> [d, e]<sup>T</sup></font>, constrained to |&Delta;x*|, |&Delta;y*| &le; 0.707 px. This guarantees true sub-pixel precision (<0.30 px) without discrete grid snapping.",
+        "<font face='Courier' size='6.8'>[&Delta;x*, &Delta;y*]<sup>T</sup> = - [2a, c; c, 2b]<sup>-1</sup> [d, e]<sup>T</sup></font>, constrained to |&Delta;x*|, |&Delta;y*| &le; 0.707 px. This guarantees continuous sub-pixel precision without discrete grid snapping.",
         body_style
     ))
 
@@ -458,58 +458,58 @@ def create_report(output_pdf_path: str):
         [
             Paragraph("Flight Scenario", table_header),
             Paragraph("Proposed Phase-Structural", table_header),
-            Paragraph("LoFTR (Lunar Fine-Tuned)", table_header),
+            Paragraph("LoFTR (Pretrained)", table_header),
             Paragraph("RIFT2 (Structural)", table_header),
             Paragraph("SIFT (Baseline 1)", table_header),
             Paragraph("AKAZE (Baseline 2)", table_header),
         ],
         [
             Paragraph("<b>1. Baseline Control</b><br/>(Low ΔAzimuth, high overlap)", table_cell),
-            Paragraph("<b>0.24 px</b> (96% Inl)<br/>Error: 0.12 m", table_cell),
-            Paragraph("0.28 px (94% Inl)<br/>Error: 0.14 m", table_cell),
-            Paragraph("0.35 px (91% Inl)<br/>Error: 0.18 m", table_cell),
-            Paragraph("0.42 px (88% Inl)<br/>Error: 0.21 m", table_cell),
-            Paragraph("0.51 px (82% Inl)<br/>Error: 0.26 m", table_cell),
+            Paragraph("<b>0.42 px</b> (99.2% Inl)<br/>Error: 0.21 m", table_cell),
+            Paragraph("0.78 px (100.0% Inl)<br/>Error: 0.39 m", table_cell),
+            Paragraph("1.49 px (83.2% Inl)<br/>Error: 0.75 m", table_cell),
+            Paragraph("1.02 px (92.7% Inl)<br/>Error: 0.51 m", table_cell),
+            Paragraph("0.95 px (95.2% Inl)<br/>Error: 0.47 m", table_cell),
         ],
         [
             Paragraph("<b>2. 180° Shadow Reversal</b><br/>(Opposite solar azimuth)", table_cell),
-            Paragraph("<b>0.29 px</b> (91% Inl)<br/>Error: 0.15 m", table_cell),
-            Paragraph("0.42 px (78% Inl)<br/>Error: 0.21 m", table_cell),
-            Paragraph("0.39 px (84% Inl)<br/>Error: 0.20 m", table_cell),
-            Paragraph("<font color='#dc2626'><b>FAILED (0 Inliers)</b></font><br/>Descriptor collapse", table_cell),
-            Paragraph("<font color='#dc2626'><b>FAILED (0 Inliers)</b></font><br/>Descriptor collapse", table_cell),
+            Paragraph("<b>1.68 px</b> (79.2% Inl)<br/>Error: 0.84 m", table_cell),
+            Paragraph("1.36 px (13.0% Inl)<br/>Warning: Low inliers", table_cell),
+            Paragraph("1.81 px (80.1% Inl)<br/>Error: 0.90 m", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (4 Inliers)</b></font><br/>Descriptor collapse", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (4 Inliers)</b></font><br/>Descriptor collapse", table_cell),
         ],
         [
             Paragraph("<b>3. Multi-Scale Disparity</b><br/>(0.25m OHRC vs 0.50m LROC)", table_cell),
-            Paragraph("<b>0.31 px</b> (89% Inl)<br/>Error: 0.16 m", table_cell),
-            Paragraph("0.35 px (85% Inl)<br/>Error: 0.18 m", table_cell),
-            Paragraph("0.44 px (79% Inl)<br/>Error: 0.22 m", table_cell),
-            Paragraph("0.78 px (48% Inl)<br/>Error: 0.39 m", table_cell),
-            Paragraph("0.92 px (36% Inl)<br/>Error: 0.46 m", table_cell),
+            Paragraph("1.48 px (80.3% Inl)<br/>Error: 0.74 m", table_cell),
+            Paragraph("<b>0.34 px</b> (100.0% Inl)<br/>Error: 0.17 m", table_cell),
+            Paragraph("1.37 px (76.1% Inl)<br/>Error: 0.69 m", table_cell),
+            Paragraph("0.45 px (95.8% Inl)<br/>Error: 0.22 m", table_cell),
+            Paragraph("0.57 px (96.2% Inl)<br/>Error: 0.28 m", table_cell),
         ],
         [
             Paragraph("<b>4. Oblique Viewpoint Shear</b><br/>(Off-nadir pitch / roll angle)", table_cell),
-            Paragraph("0.38 px (86% Inl)<br/>Error: 0.19 m", table_cell),
-            Paragraph("<b>0.32 px</b> (91% Inl)<br/>Error: 0.16 m", table_cell),
-            Paragraph("0.46 px (77% Inl)<br/>Error: 0.23 m", table_cell),
-            Paragraph("0.85 px (41% Inl)<br/>Error: 0.43 m", table_cell),
-            Paragraph("0.98 px (32% Inl)<br/>Error: 0.49 m", table_cell),
+            Paragraph("0.73 px (96.5% Inl)<br/>Error: 0.36 m", table_cell),
+            Paragraph("<b>0.32 px</b> (100.0% Inl)<br/>Error: 0.16 m", table_cell),
+            Paragraph("1.33 px (84.3% Inl)<br/>Error: 0.67 m", table_cell),
+            Paragraph("0.40 px (97.9% Inl)<br/>Error: 0.20 m", table_cell),
+            Paragraph("0.53 px (98.9% Inl)<br/>Error: 0.27 m", table_cell),
         ],
         [
             Paragraph("<b>5. Polar Crater Deep Shadow</b><br/>(Grazing sun <5°, high noise)", table_cell),
-            Paragraph("<b>0.34 px</b> (87% Inl)<br/>Error: 0.17 m", table_cell),
-            Paragraph("0.48 px (72% Inl)<br/>Error: 0.24 m", table_cell),
-            Paragraph("0.49 px (74% Inl)<br/>Error: 0.25 m", table_cell),
-            Paragraph("<font color='#dc2626'><b>FAILED (0 Inliers)</b></font><br/>Dark threshold clip", table_cell),
-            Paragraph("<font color='#dc2626'><b>FAILED (0 Inliers)</b></font><br/>Dark threshold clip", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (7 Inliers)</b></font><br/>Low contrast", table_cell),
+            Paragraph("<b>1.84 px</b> (44.0% Inl)<br/>Error: 0.92 m", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (7 Inliers)</b></font><br/>Low contrast", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (4 Inliers)</b></font><br/>Dark threshold clip", table_cell),
+            Paragraph("<font color='#dc2626'><b>FAILED (4 Inliers)</b></font><br/>Dark threshold clip", table_cell),
         ],
         [
             Paragraph("<b>Summary Average</b>", table_cell_bold),
-            Paragraph("<b>RMSE: 0.29 px | 90.8% Inl</b>", table_cell_bold),
-            Paragraph("RMSE: 0.37 px | 84.0% Inl", table_cell_bold),
-            Paragraph("RMSE: 0.43 px | 81.0% Inl", table_cell_bold),
-            Paragraph("RMSE: 0.68 px | 35.4% Inl", table_cell_bold),
-            Paragraph("RMSE: 0.80 px | 30.0% Inl", table_cell_bold),
+            Paragraph("<b>RMSE: 1.08 px | 81.8% Inl</b>", table_cell_bold),
+            Paragraph("RMSE: 0.93 px | 71.4% Inl", table_cell_bold),
+            Paragraph("RMSE: 1.50 px | 74.1% Inl", table_cell_bold),
+            Paragraph("RMSE: 0.62 px | 60.4% Inl", table_cell_bold),
+            Paragraph("RMSE: 0.68 px | 61.6% Inl", table_cell_bold),
         ]
     ]
 
@@ -550,28 +550,28 @@ def create_report(output_pdf_path: str):
         ],
         [
             Paragraph("Stage A: Baseline Matcher Only (Intensity Gradients)", table_cell),
-            Paragraph("3", table_cell), Paragraph("17.6%", table_cell), Paragraph("2.72 px", table_cell), Paragraph("2.0%", table_cell),
+            Paragraph("4", table_cell), Paragraph("8.0%", table_cell), Paragraph("N/A", table_cell), Paragraph("3.0%", table_cell),
             Paragraph("<font color='#dc2626'><b>FAILURE (Degenerate)</b></font>", table_cell)
         ],
         [
             Paragraph("Stage B: + Illumination Processing (Log-Gabor Phase)", table_cell),
-            Paragraph("197", table_cell), Paragraph("91.2%", table_cell), Paragraph("1.33 px", table_cell), Paragraph("61.0%", table_cell),
+            Paragraph("137", table_cell), Paragraph("80.1%", table_cell), Paragraph("1.81 px", table_cell), Paragraph("57.0%", table_cell),
             Paragraph("<font color='#16a34a'><b>SUCCESS (Recovered)</b></font>", table_cell)
         ],
         [
             Paragraph("Stage C: + Robust Geometric Model Selection (SVD &kappa; Check)", table_cell),
-            Paragraph("197", table_cell), Paragraph("91.2%", table_cell), Paragraph("1.33 px", table_cell), Paragraph("61.0%", table_cell),
+            Paragraph("137", table_cell), Paragraph("80.1%", table_cell), Paragraph("1.81 px", table_cell), Paragraph("57.0%", table_cell),
             Paragraph("<font color='#16a34a'><b>SUCCESS (Stable)</b></font>", table_cell)
         ],
         [
             Paragraph("Stage D: + Spatial Control-Point ANMS Grid Binning", table_cell),
-            Paragraph("134", table_cell), Paragraph("93.7%", table_cell), Paragraph("1.31 px", table_cell), Paragraph("62.0%", table_cell),
+            Paragraph("101", table_cell), Paragraph("80.8%", table_cell), Paragraph("1.69 px", table_cell), Paragraph("54.0%", table_cell),
             Paragraph("<font color='#16a34a'><b>SUCCESS (Uniform)</b></font>", table_cell)
         ],
         [
             Paragraph("Stage E: + Sub-Pixel Refinement (Full Hybrid Suite)", table_cell_bold),
-            Paragraph("130", table_cell_bold), Paragraph("90.9%", table_cell_bold), Paragraph("<b>0.29 px</b>", table_cell_bold), Paragraph("<b>69.0%</b>", table_cell_bold),
-            Paragraph("<font color='#16a34a'><b>OPTIMAL (<0.3 px)</b></font>", table_cell_bold)
+            Paragraph("99", table_cell_bold), Paragraph("79.2%", table_cell_bold), Paragraph("<b>1.68 px</b>", table_cell_bold), Paragraph("<b>54.0%</b>", table_cell_bold),
+            Paragraph("<font color='#16a34a'><b>OPTIMAL (Refined)</b></font>", table_cell_bold)
         ]
     ]
 
@@ -708,7 +708,7 @@ def create_report(output_pdf_path: str):
         body_style
     ))
     story.append(Paragraph(
-        "• <b>Computational Feasibility:</b> The full Phase-Structural pipeline executes in <b>2.5 to 4.0 seconds</b> on a standard multi-core desktop CPU (Intel i5/i7) without requiring specialized hardware. Memory consumption peaks below <b>1.2 GB RAM</b>, allowing batch processing on standard ground workstations. When GPU acceleration is available, our fine-tuned LoFTR deep transformer matches swaths in under <b>0.4 seconds</b>.",
+        "• <b>Computational Feasibility:</b> The full Phase-Structural pipeline executes in <b>2.5 to 4.0 seconds</b> on a standard multi-core desktop CPU (Intel i5/i7) without requiring specialized hardware. Memory consumption peaks below <b>1.2 GB RAM</b>, allowing batch processing on standard ground workstations. When GPU acceleration is available, the LoFTR deep transformer matches swaths in under <b>0.4 seconds</b>.",
         bullet_style
     ))
     story.append(Paragraph(
@@ -757,11 +757,11 @@ if __name__ == "__main__":
         print(f"[WARNING] Page count is {pages}, target was 5 pages.")
 
     # Copy to destination paths
+    repo_root = Path(__file__).resolve().parent.parent
+    docs_pdf = repo_root / "docs" / "LunarRegX_Technical_Report.pdf"
     destination_paths = [
+        str(docs_pdf),
         r"C:\Users\ASUS\.gemini\antigravity\scratch\LunarRegX_Technical_Report.pdf",
-        r"C:\Users\ASUS\.gemini\antigravity\scratch\lunar_registration\docs\LunarRegX_Technical_Report.pdf",
-        r"C:\Users\ASUS\.gemini\antigravity\brain\0249870b-d260-416d-9edd-688eae8c0a1f\LunarRegX_Technical_Report.pdf",
-        r"C:\Users\ASUS\.gemini\antigravity\brain\551dbabb-e788-4fdf-8b6c-144c0a61671b\LunarRegX_Technical_Report.pdf"
     ]
     for dst in destination_paths:
         try:
