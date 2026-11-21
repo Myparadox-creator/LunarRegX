@@ -53,58 +53,15 @@ The **Lunar South Pole** and complex cratered regions pose one of the most formi
 ## 🏛️ System Architecture
 
 ```mermaid
-flowchart TD
-    subgraph INGESTION ["1. PDS4 & GIS Ingestion Layer"]
-        A["ISRO PRADAN PDS4 Archive (.zip / .tar / .xml / .img / .tif)"] --> B["scripts/ingest_pradan_product.py"]
-        B --> C["XML Metadata Parser (Sun Azimuth, Elevation, Lat/Lon)"]
-        B --> D["16-Bit Dynamic Range Normalizer"]
-        C & D --> E["IAU-2000 Lunar Datum CRS (Equirectangular & Polar Stereographic)"]
-    end
+flowchart LR
+    A["🛰️ 1. PDS4 & GIS Ingestion<br><small>ISRO PRADAN • IAU-2000 Datum</small>"] --> B["📐 2. Footprint ROI<br><small>Geospatial Overlap >= 15%</small>"] --> C["🔬 3. Sensor Encoders<br><small>OHRC (LoG) • TMC-2 (DoG) • IIRS (PCA)</small>"] --> D["⚡ 4. Matching Engines<br><small>Phase-Structural • LoFTR • Baselines</small>"] --> E["🎯 5. Geometric Guard<br><small>ANMS • Sub-Pixel • SVD κ(H) <= 2000</small>"] --> F["🗺️ 6. Cartographic Export<br><small>Warped GeoTIFF • GeoJSON • JSON</small>"]
 
-    subgraph PRE_REG ["2. Pre-Registration & Footprint Analysis"]
-        E --> F["GISPreRegistrationAnalyzer"]
-        F --> G{"Geospatial Overlap >= 15%?"}
-        G -- No --> H["Rejection & Spatial Alert"]
-        G -- Yes --> I["Common ROI Bounding Window Extraction"]
-    end
-
-    subgraph MULTIMODAL ["3. Sensor-Aware Multimodal Encoders"]
-        I --> J1["OHRC Encoder (LoG Micro-Topography Sharpening)"]
-        I --> J2["TMC-2 Encoder (Difference-of-Gaussians Bandpass)"]
-        I --> J3["IIRS Encoder (PCA Continuum + Morphological Gradient)"]
-        J1 & J2 & J3 --> K["Common Terrain Structural Representation (Normalized Edge Energy & Reliability Map)"]
-    end
-
-    subgraph CORRESPONDENCE ["4. Multi-Engine Correspondence Matching"]
-        K --> L1["⭐ PHASE_STRUCTURAL (Proposed Physics-Based): Log-Gabor Filter Bank + MIM"]
-        K --> L2["🚀 LOFTR (Deep Transformer): Pretrained Outdoor / Experimental Lunar Checkpoint"]
-        K --> L3["🔬 RIFT2 (Structural MIM)"]
-        K --> L4["📐 SIFT (Baseline 1)"]
-        K --> L5["⚡ AKAZE (Baseline 2)"]
-        K --> L6["🧠 LEARNED (Lightweight LunarNet CNN)"]
-    end
-
-    subgraph GEOMETRY ["5. Robust Spatial & Geometric Verification"]
-        L1 & L2 & L3 & L4 & L5 & L6 --> M["Adaptive Non-Maximal Suppression ANMS (Uniform N x N Cell Binning)"]
-        M --> N["Continuous 2D Parabolic Peak Fitting (Sub-Pixel Accuracy < 0.3 px)"]
-        N --> O["Stability-Guided Geometric Estimator (Similarity -> Affine -> Homography)"]
-        O --> P["Condition Number Check: kappa(H) < 2000"]
-        P --> Q["80/20 Independent Checkpoint Validation"]
-    end
-
-    subgraph EXPORT ["6. Cartographic Artifact Generation"]
-        Q --> R1["Geospatially Warped GeoTIFF (Bicubic IAU-2000 Resampling)"]
-        Q --> R2["Control Points GeoJSON & CSV (QGIS / ArcGIS Ready)"]
-        Q --> R3["Diagnostics & Metrics JSON (RMSE, Residuals, Convex Hull)"]
-        Q --> R4["Cartographic Inspection Overlays (Matches, Checkerboard, Quiver, Difference)"]
-    end
-
-    style INGESTION fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#fff
-    style PRE_REG fill:#161b22,stroke:#58a6ff,stroke-width:2px,color:#fff
-    style MULTIMODAL fill:#161b22,stroke:#bc8cff,stroke-width:2px,color:#fff
-    style CORRESPONDENCE fill:#1f242c,stroke:#f0883e,stroke-width:2px,color:#fff
-    style GEOMETRY fill:#161b22,stroke:#3fb950,stroke-width:2px,color:#fff
-    style EXPORT fill:#0d1117,stroke:#238636,stroke-width:2px,color:#fff
+    style A fill:#0d1117,stroke:#58a6ff,stroke-width:1.5px,color:#fff
+    style B fill:#161b22,stroke:#58a6ff,stroke-width:1.5px,color:#fff
+    style C fill:#161b22,stroke:#bc8cff,stroke-width:1.5px,color:#fff
+    style D fill:#1f242c,stroke:#f0883e,stroke-width:1.5px,color:#fff
+    style E fill:#161b22,stroke:#3fb950,stroke-width:1.5px,color:#fff
+    style F fill:#0d1117,stroke:#238636,stroke-width:1.5px,color:#fff
 ```
 
 ---
@@ -185,92 +142,6 @@ Evaluated across authentic Chandrayaan-2 and LRO lunar challenge scenarios (repr
 > * **Viewpoint & Multi-Scale Disparity (Scenarios 3 & 4):** Dense transformer matching in **LoFTR (pretrained)** excels under affine and perspective viewpoint shear (0.32 px RMSE) and resolution jumps (0.34 px RMSE).
 > * **Polar Low-Contrast Terrain (Scenario 5):** Dense attention (LoFTR) is resilient in low-contrast permanent shadow areas (299 inliers), where sparse keypoint detectors fail to find sufficient salient corners.
 > * **Benign Control (Scenario 1):** Under consistent illumination, the **Proposed Phase-Structural** pipeline achieves the highest inlier ratio (99.2%) and sub-half-pixel accuracy (0.42 px).
-
----
-
-## 🖥️ Frontend UI State & Navigation Workflow
-
-The LunarRegX frontend interface is engineered around **4 operational UI zones** ensuring seamless navigation from satellite swath ingestion to high-precision cartographic verification:
-
-```mermaid
-flowchart TD
-    subgraph SIDEBAR["ZONE 1: SIDEBAR CONFIGURATION HUB"]
-        Mode["Operation Mode Selector<br>• 🏆 SIH Judge Demonstration Mode<br>• 📁 Custom Registration & Upload"]
-        Sensors["Sensor Profile Pickers<br>• Source: OHRC (0.25m) / TMC-2 / IIRS<br>• Reference: TMC-2 (5m) / IIRS (80m)"]
-        Engines["Correspondence Engine Dropdown<br>• PHASE_STRUCTURAL (Proposed Physics)<br>• LOFTR (Deep Transformer)<br>• SIFT / AKAZE / RIFT2 / CNN"]
-        Overrides["🛰️ GIS Coordinate Override (Optional)<br>• Center Latitude / Longitude (°)<br>• Custom Source / Reference GSD (m)"]
-        ExecBtn["⚡ EXECUTE REGISTRATION PIPELINE<br>(Triggers spinner & backend worker)"]
-        
-        Mode --> Sensors --> Engines --> Overrides --> ExecBtn
-    end
-
-    subgraph INGEST_VIEW["ZONE 2: DATA PREVIEW CANVAS"]
-        direction LR
-        DemoView["Scenario Selector (Demo Mode)<br>• Baseline Control<br>• 180° Shadow Reversal<br>• Multi-Scale (0.25m vs 0.5m)<br>• Oblique Viewpoint Shear<br>• Polar Crater Shadows"]
-        UploadView["Upload Canvas (Custom Mode)<br>• Preloaded Flight Swaths (ISRO PRADAN)<br>• File Uploader (GeoTIFF / PNG / XML)"]
-        DualPreview["Side-by-Side Dual Preview<br>• Source Image (Moving)<br>• Reference Image (Fixed)"]
-        
-        DemoView --> DualPreview
-        UploadView --> DualPreview
-    end
-
-    subgraph KPI_BANNER["ZONE 3: EXECUTIVE PERFORMANCE DASHBOARD"]
-        direction LR
-        StatusBanner["Dynamic Status Banner<br>🟢 SUCCESS (Model Verified) | 🟡 WARNING | 🔴 FAILURE"]
-        KPIs["6 Real-Time Cartographic Metric Cards<br>• Inlier Count (e.g. 15 / 64)<br>• Inlier Ratio (%)<br>• Total 2D RMSE (px)<br>• Physical Error (meters)<br>• Spatial Coverage (%)<br>• Total Runtime (sec)"]
-        StatusBanner --> KPIs
-    end
-
-    subgraph TABS["ZONE 4: 11-STAGE INTERACTIVE DEMONSTRATION TABS"]
-        direction TB
-        T1["1. GIS & Footprint: Overlap %, Scale Ratio, Crop Windows, Sun Azimuth Delta"]
-        T2["2. Sensor Encoding: Modality-tailored structural maps (OHRC / TMC-2 / IIRS)"]
-        T3["3. Illumination Phase: 2D Log-Gabor maximum moment & shadow reliability mask"]
-        T4["4. Correspondences: Dual-canvas with green inliers & red rejected outliers"]
-        T5["5. Outlier Rejection: RANSAC residual distribution & inlier survival curve"]
-        T6["6. Spatial ANMS: 10x10 grid coverage overlay & spatial density heatmap"]
-        T7["7. Sub-Pixel Refinement: 2D continuous paraboloid displacement quiver vectors"]
-        T8["8. Model Estimation: Transformation matrix, SVD condition number (κ)"]
-        T9["9. Registered Warping: Bicubic warped source aligned to reference coordinate frame"]
-        T10["10. Quality Inspection: Interactive split-screen Checkerboard & Difference map"]
-        T11["11. Export Artifacts: Download GeoTIFF, QGIS GeoJSON, CSV points, Metrics JSON"]
-
-        T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7 --> T8 --> T9 --> T10 --> T11
-    end
-
-    %% State Transitions
-    Mode -.->|Controls View| INGEST_VIEW
-    ExecBtn ==>|Launches Pipeline| KPI_BANNER
-    KPI_BANNER ==>|Populates Results| TABS
-
-    style SIDEBAR fill:#161b22,stroke:#58a6ff,stroke-width:2px,color:#fff
-    style INGEST_VIEW fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#fff
-    style KPI_BANNER fill:#1f242c,stroke:#f0883e,stroke-width:2px,color:#fff
-    style TABS fill:#161b22,stroke:#3fb950,stroke-width:2px,color:#fff
-```
-
-### 🗺️ Operational UI Navigation Flow
-
-1. **Zone 1: Sidebar Configuration Hub:**
-   - **Mode Selection:** Toggle between **SIH Judge Demonstration Mode** (pre-configured lunar challenge benchmarks) and **Custom Registration & Upload** (for PRADAN GeoTIFF/PDS4 swaths).
-   - **Sensor Parameterization:** Select Source and Reference modalities (OHRC $0.25\text{ m}$, TMC-2 $5.0\text{ m}$, IIRS $80\text{ m}$).
-   - **Algorithmic Engine:** Select from 6 registered engines (Phase-Structural, LoFTR, RIFT2, SIFT, AKAZE, LunarNet CNN).
-   - **GIS Geodetic Overrides:** Optional manual overrides for bounding boxes, GSD, and center coordinates.
-   - **Execution Trigger:** Launches backend multi-scale pyramid registration with progress feedback.
-
-2. **Zone 2: Data Preview Canvas:**
-   - Dynamically adapts based on operation mode: presents verified benchmark scenarios or interactive file dropzones.
-   - Renders side-by-side synchronized viewport cards with metadata badges (resolution, solar azimuth, bit depth).
-
-3. **Zone 3: Executive Performance Dashboard:**
-   - Color-coded status badge (**SUCCESS**, **WARNING**, **FAILURE**) based on mathematical stability criteria ($\kappa(H) \le 2000$, Inlier Ratio $\ge 60\%$).
-   - 6 instant real-time telemetry cards displaying: **Inlier Count**, **Inlier Ratio**, **2D Pixel RMSE**, **Physical Ground Error**, **Spatial Grid Coverage**, and **Compute Runtime**.
-
-4. **Zone 4: 11-Stage Interactive Walkthrough Tabs:**
-   - Granular step-by-step verification tabs exposing each mathematical transformation:
-     - **Tabs 1–3:** Geodetic footprint overlap, multi-modal contrast normalization, and illumination-invariant Log-Gabor phase moments.
-     - **Tabs 4–7:** Feature tie-point canvas, RANSAC residual distribution, ANMS spatial coverage grid, and continuous 2D parabolic sub-pixel quiver vectors.
-     - **Tabs 8–11:** SVD stability condition checks, bicubic warped canvas, interactive split-screen checkerboard overlay, and single-click GIS artifact export (GeoTIFF, GeoJSON, CSV, JSON).
 
 ---
 
