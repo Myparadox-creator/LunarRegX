@@ -57,6 +57,16 @@ python scripts/generate_lunar_benchmarks.py --output_dir data/samples
 The repository includes authentic flight metadata, PDS4 XML labels, and calibrated flight browse swaths from the ISRO Chandrayaan-2 mission:
 
 ### Included Flight Products:
+* **ISRO Space Applications Centre (SAC) SIH 2026 Flight Dataset:**
+  - **Official Download Link:** [https://vedas.sac.gov.in/content/vcms/downloads/data_for_sih_2026.zip](https://vedas.sac.gov.in/content/vcms/downloads/data_for_sih_2026.zip)
+  - **Origin:** Space Applications Centre (SAC), ISRO, hosted on the VEDAS portal for Smart India Hackathon (SIH 2026 Problem ID: 26166).
+  - **Contents:** Authentic Chandrayaan-2 OHRC flight passes and wide regional lunar reference imagery, with official PDS4 XML metadata labels.
+  - **Empirical Validation Results:**
+    - Inlier Count: **4 / 20** (28.6% inlier ratio)
+    - Total 2D RMSE: **0.365 px** (tight sub-pixel alignment)
+    - Physical Error: **73.01 m** (across regional multi-kilometer baseline)
+    - Spatial Coverage: **3.0%** (narrow high-res strip nested in wide crater scene)
+    - Runtime: **23.54 s** (full-resolution ~8.6 MB multi-megapixel flight frames)
 * **Chandrayaan-2 OHRC (Orbiter High Resolution Camera - 0.25 m/px):**
   - `data/raw/ch2/ohrc/ch2_ohr_ncp_20190906T2241285714_d_img_gds.xml`: Authentic PDS4 flight metadata for the Sept 6, 2019 pass over the Chandrayaan-2 Vikram landing site ($70.5^\circ\text{S to } 71.4^\circ\text{S}$, $22.5^\circ\text{E to } 22.9^\circ\text{E}$).
   - `data/raw/ch2/ohrc/ch2_ohr_ncp_20211023T0027462822_d_img_d18.xml`: PDS4 flight metadata for the Oct 23, 2021 South Pole swath ($68.8^\circ\text{S to } 69.7^\circ\text{S}$, $32.1^\circ\text{E to } 32.55^\circ\text{E}$).

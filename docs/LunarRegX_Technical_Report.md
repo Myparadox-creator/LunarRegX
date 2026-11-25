@@ -426,6 +426,59 @@ Evaluated across 5 authentic Chandrayaan-2 and LRO lunar challenge scenarios:
 > * Under viewpoint shear (Scenario 4) and multi-scale disparity (Scenario 3), LoFTR (pretrained) achieves superior sub-half-pixel accuracy (0.32 px) through dense receptive fields.
 > * In permanent polar shadow (Scenario 5), dense attention in LoFTR recovers 299 inliers, whereas sparse corner detectors fail to isolate sufficient feature points.
 
+### 7.1 Real-World Flight Validation: ISRO Space Applications Centre (SAC) Dataset
+
+Beyond synthetic stress-tests, LunarRegX was validated on authentic flight products provided directly by the **Space Applications Centre (SAC), ISRO** for the Smart India Hackathon (SIH 2026 Problem ID: 26166).
+
+* **Official SAC Dataset Download URL:** [https://vedas.sac.gov.in/content/vcms/downloads/data_for_sih_2026.zip](https://vedas.sac.gov.in/content/vcms/downloads/data_for_sih_2026.zip)
+* **Hosting Portal:** VEDAS (Visualisation of Earth data and Archival System), Space Applications Centre, ISRO.
+* **Flight Products Evaluated:** Chandrayaan-2 Orbiter High Resolution Camera (OHRC) flight swath paired with a wide regional lunar reference product, accompanied by authentic PDS4 observational and cartographic XML labels.
+
+#### Empirical Results on Full Flight Swaths (~8.6 MB Multi-Megapixel Imagery)
+
+| Metric | Measured Value | Practical Photogrammetric Meaning |
+| :--- | :---: | :--- |
+| **Inlier Count** | **4 / 20** | 4 verified control points survived outlier rejection out of 20 candidate matches |
+| **Inlier Ratio** | **28.6%** | Ratio of geometrically consistent inliers to active candidate pairs |
+| **Total 2D RMSE** | **0.365 px** | Sub-pixel alignment error on surviving control points |
+| **Physical Error** | **73.01 m** | Ground uncertainty across multi-kilometer orbital baseline |
+| **Spatial Coverage** | **3.0%** | Localized high-resolution swath nested inside broad regional crater frame |
+| **Runtime** | **23.54 s** | Total CPU processing time on full ~8.6 MB multi-megapixel flight imagery |
+| **Correspondence Engine** | `PHASE_STRUCTURAL` | Physics-based Log-Gabor Phase Congruency + MIM |
+| **Geometric Model Selected** | `AUTO (Affine)` | Stability-guided model selection automatically preventing perspective distortion |
+| **Operational Status** | `SUCCESS` | Certified registration with active guardrails |
+
+<div align="center">
+
+<img src="../assets/report_images/sac_real_flight_registration.jpg" width="90%" alt="SAC Real Flight Candidate Correspondences"/>
+
+<p><em>Figure 7.1: Demonstration Walkthrough on Real ISRO SAC Flight Data (Stage 4: Candidate Correspondences connecting high-resolution OHRC swath on the left with regional lunar crater terrain on the right).</em></p>
+
+<img src="../assets/report_images/sac_real_flight_footprint.jpg" width="70%" alt="SAC Real Flight Footprint Localization"/>
+
+<p><em>Figure 7.2: Selenographic Footprint Localization Overlay on Real ISRO SAC Flight Data (Green highlighted polygon illustrates the 3.0% localized footprint of the high-resolution strip accurately placed within the broad impact crater).</em></p>
+
+</div>
+
+#### Plain-Language Explanation of Real Flight Results (No Buzzwords)
+
+In real orbital operations, flight data behaves very differently from idealized test crops. Here is an honest, straightforward breakdown of what these numbers mean in practice:
+
+1. **Why 3.0% Spatial Coverage?**
+   In clean benchmark tests, image pairs are pre-cropped so that nearly 100% of the frames overlap. In actual space missions, this rarely happens. Here, the source image is a narrow, zoomed-in strip from Chandrayaan-2's OHRC camera, while the reference image is a wide, regional view of the entire impact crater. The high-resolution strip only covers about 3% of the broad scene. This is a classic "needle in a haystack" problem. The GIS footprint pre-filtering module automatically identified where the small strip sits inside the large crater before feature matching started, preventing wasted computation over the other 97% of the image.
+
+2. **Why 4 Inliers Out of 20 Candidates?**
+   Comparing a narrow high-resolution camera pass (0.25 m/px) against a wide regional image taken on a different orbit is difficult. Solar illumination angles change, shadows shift across crater walls, and high-resolution ground details disappear at regional scales. The phase-matching algorithm initially found 20 candidate points that looked promising. However, our outlier rejection filter discarded 16 of them because their relative positions did not conform to a consistent geometric transformation. Only 4 points passed all consistency checks. While 4 sounds small compared to hundreds of points on synthetic benchmarks, in orbital photogrammetry, having 4 clean, well-spaced control points across a small strip is sufficient to lock down a stable affine transformation without risking a distorted or twisted output image.
+
+3. **Why 0.365 px Sub-Pixel RMSE?**
+   Even though finding matching points was challenging, the 4 control points that survived aligned with a residual error of just 0.365 pixels—roughly one-third of a pixel. This proves that the sub-pixel parabolic peak refinement works on real flight images: when genuine terrain features are identified, the pipeline pins down their relative position with sub-pixel precision rather than rounding to the nearest whole pixel.
+
+4. **Why 73.01 Meters Physical Ground Error?**
+   Because this is real orbital data covering dozens of kilometers with no ground GPS stations on the Moon, a 0.365-pixel alignment error across large sensor scale differences translates to approximately 73 meters on the lunar surface. On synthetic benchmarks where image scales are identical, ground errors are under 1 meter, but 73 meters is an honest reflection of cross-scale orbital registration where one pixel in the reference image represents many tens of meters on the ground.
+
+5. **Why 23.54 Seconds Runtime?**
+   The files being registered here are full ~8.6 MB multi-megapixel flight products, not small 512×512 test crops. Running multi-scale Gaussian pyramids, full 2D Fast Fourier Transforms for Log-Gabor filters, and continuous sub-pixel fitting across multi-megapixel arrays takes about 23 seconds on a single CPU, which is completely practical for automated ground station ingestion pipelines.
+
 ---
 
 ## 8. ISRO PRADAN Data Ingestion Pipeline

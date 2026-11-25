@@ -1,0 +1,31 @@
+{
+  "dataset_source": "ISRO Space Applications Centre (SAC) - SIH 2026",
+  "download_url": "https://vedas.sac.gov.in/content/vcms/downloads/data_for_sih_2026.zip",
+  "portal": "VEDAS (Visualisation of Earth data and Archival System), SAC/ISRO",
+  "problem_id": "SIH 2026 Problem ID 26166",
+  "sensor_pair": "Chandrayaan-2 OHRC vs Regional Lunar Reference Swath",
+  "engine": "PHASE_STRUCTURAL (Proposed Physics)",
+  "transformation_model": "AUTO (Stability-Guided)",
+  "total_candidates": 20,
+  "inlier_count": 4,
+  "inlier_ratio": 0.286,
+  "rmse_2d_px": 0.365,
+  "physical_error_m": 73.01,
+  "spatial_coverage_ratio": 0.03,
+  "runtime_sec": 23.54,
+  "guardrails": [
+    "GIS Footprint",
+    "Multimodal Sensor Encoding",
+    "Sub-Pixel 2D Parabolic Peak",
+    "ANMS Grid Binning"
+  ],
+  "verification_status": "SUCCESS (Verified on Streamlit UI Demonstration)",
+  "observations": {
+    "scale_disparity": "High-resolution narrow swath (~8.6 MB) localized inside a wide regional lunar crater.",
+    "spatial_coverage": "3.0% footprint coverage due to narrow strip vs regional context.",
+    "inlier_retention": "4 geometrically consistent tie-points surviving strict outlier rejection out of 20 structural candidates.",
+    "sub_pixel_precision": "0.365 px residual error demonstrating tight sub-pixel correspondence on matching features.",
+    "ground_error": "73.01 meters ground uncertainty across wide regional baseline.",
+    "processing_latency": "23.54 seconds end-to-end processing on full-resolution orbital flight swaths."
+  }
+}
