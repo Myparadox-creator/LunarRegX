@@ -73,3 +73,50 @@ def test_geotiff_export_bytes():
             read_arr = ds.read(1)
             np.testing.assert_array_equal(read_arr, test_img)
 
+
+def test_pipeline_requires_xml_when_enforced(tmp_path):
+    import cv2
+    from src.io.dataset import load_lunar_image
+
+    # Synthetic scene with distinct craters so PHASE_STRUCTURAL has strong features if XML passes
+    rng = np.random.RandomState(7)
+    arr = (rng.rand(192, 192) * 40 + 60).astype(np.uint8)
+    for _ in range(15):
+        cx, cy = rng.randint(25, 165, size=2)
+        r = rng.randint(8, 22)
+        cv2.circle(arr, (int(cx), int(cy)), int(r), 30, -1)
+        cv2.circle(arr, (int(cx), int(cy)), int(r), 210, 2)
+
+    src_p = tmp_path / "custom_src.png"
+    ref_p = tmp_path / "custom_ref.png"
+    cv2.imwrite(str(src_p), arr)
+    cv2.imwrite(str(ref_p), arr)
+
+    src_no_xml = load_lunar_image(src_p)
+    ref_no_xml = load_lunar_image(ref_p)
+
+    cfg = RegistrationPipelineConfig(feature_method="PHASE_STRUCTURAL", require_xml_metadata=True)
+    pipeline = LunarRegistrationPipeline(config=cfg)
+
+    with pytest.raises(ValueError, match="requires corresponding XML metadata"):
+        pipeline.run(src_no_xml, ref_no_xml)
+
+    # Now load with valid corresponding XML files and confirm pipeline runs
+    xml_template = """<?xml version="1.0" encoding="utf-8"?>
+<product>
+    <job_id>OHRXXD18CHO2359602NNNN24342131250969_V1_0_03</job_id>
+    <Resolution_in_meter>0.25</Resolution_in_meter>
+    <Sun_azimuth_in_degree>135.0</Sun_azimuth_in_degree>
+    <Sun_elevation_in_degree>30.0</Sun_elevation_in_degree>
+</product>"""
+    src_xml = tmp_path / "custom_src.xml"
+    ref_xml = tmp_path / "custom_ref.xml"
+    src_xml.write_text(xml_template, encoding="utf-8")
+    ref_xml.write_text(xml_template, encoding="utf-8")
+
+    src_with_xml = load_lunar_image(src_p, xml_path=src_xml, require_xml=True)
+    ref_with_xml = load_lunar_image(ref_p, xml_path=ref_xml, require_xml=True)
+    out = pipeline.run(src_with_xml, ref_with_xml)
+    assert out.metrics.inlier_count >= 4
+
+

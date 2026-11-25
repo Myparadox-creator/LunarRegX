@@ -64,6 +64,7 @@ class RegistrationPipelineConfig:
     independent_val_split: float = 0.20       # 20% held-out checkpoints
     checkpoint_path: Optional[str] = None     # Custom checkpoint override (e.g. for LoFTR)
     deep_matcher: Optional[Any] = None        # Pre-cached deep matcher instance (e.g. via st.cache_resource)
+    require_xml_metadata: bool = False        # Enforce corresponding PDS4/SAC XML metadata on both inputs
 
 @dataclass
 class RegistrationOutput:
@@ -220,6 +221,20 @@ class LunarRegistrationPipeline:
     ) -> RegistrationOutput:
         start_time = time.time()
         cfg = self.config
+
+        if cfg.require_xml_metadata:
+            src_xml_ok = bool(source.metadata and source.metadata.extra_attributes.get("xml_loaded"))
+            ref_xml_ok = bool(reference.metadata and reference.metadata.extra_attributes.get("xml_loaded"))
+            if not (src_xml_ok and ref_xml_ok):
+                missing = []
+                if not src_xml_ok:
+                    missing.append("Source XML")
+                if not ref_xml_ok:
+                    missing.append("Reference XML")
+                raise ValueError(
+                    "Registration pipeline requires corresponding XML metadata files for both images. "
+                    f"Missing or unvalidated: {', '.join(missing)}."
+                )
 
         # 1. GIS / Spatial Pre-Registration Analysis
         spatial_pre_reg = None

@@ -16,6 +16,7 @@ if str(ROOT_DIR) not in sys.path:
 
 import io
 import json
+import shutil
 import streamlit as st
 import numpy as np
 import cv2
@@ -186,6 +187,13 @@ effective_ref_gsd = selected_ref_gsd
 samples_dir = ROOT_DIR / "data" / "samples"
 src_lunar = None
 ref_lunar = None
+custom_source = ""
+upload_missing = []
+upload_validation_error = None
+up_src = None
+up_src_xml = None
+up_ref = None
+up_ref_xml = None
 
 # -------------------------------------------------------------
 # CARD 3: MISSION DATA / SCENARIO SELECTOR
@@ -277,6 +285,10 @@ else:
             custom_source_raw = "Preloaded Swaths"
         custom_source = "Ingested Flight Images" if custom_source_raw == "Preloaded Swaths" else "Upload Files"
 
+        if st.session_state.get("current_custom_source") != custom_source:
+            st.session_state["current_custom_source"] = custom_source
+            st.session_state.pop("reg_result", None)
+
         if "Ingested Flight Images" in custom_source:
             available_flight = {
                 "Chandrayaan-2 OHRC (Landing Site, Oct 2021)": samples_dir / "real_ch2_ohrc_landing_site.png",
@@ -306,43 +318,91 @@ else:
                 except Exception as e:
                     st.error(f"Error loading selected flight images: {e}", icon=":material/error:")
         else:
-            st.caption("Upload 8/12/16-bit GeoTIFF, TIFF, PNG, or JPEG")
+            st.caption("Upload 8/12/16-bit GeoTIFF/TIFF/PNG/JPEG rasters AND their corresponding XML files (both required)")
             col_u1, col_u2 = st.columns(2)
             with col_u1:
-                up_src = st.file_uploader("Source / Moving Raster", type=["png", "jpg", "jpeg", "tif", "tiff"])
-                up_src_xml = st.file_uploader("Source PDS4 XML (Optional)", type=["xml"], help="Upload PRADAN XML label for automatic georeferencing and solar angles")
+                up_src = st.file_uploader("Source / Moving Raster (Required)", type=["png", "jpg", "jpeg", "tif", "tiff"], key="up_src_raster")
+                up_src_xml = st.file_uploader("Source Corresponding XML (Required)", type=["xml"], key="up_src_xml", help="Required PRADAN PDS4 or ISRO SAC XML label corresponding to the Source image")
             with col_u2:
-                up_ref = st.file_uploader("Reference / Fixed Raster", type=["png", "jpg", "jpeg", "tif", "tiff"])
-                up_ref_xml = st.file_uploader("Reference PDS4 XML (Optional)", type=["xml"], help="Upload PRADAN XML label for automatic georeferencing and solar angles")
+                up_ref = st.file_uploader("Reference / Fixed Raster (Required)", type=["png", "jpg", "jpeg", "tif", "tiff"], key="up_ref_raster")
+                up_ref_xml = st.file_uploader("Reference Corresponding XML (Required)", type=["xml"], key="up_ref_xml", help="Required PRADAN PDS4 or ISRO SAC XML label corresponding to the Reference image")
 
-            if up_src and up_ref:
+            upload_sig = (
+                (up_src.name, up_src.size) if up_src else None,
+                (up_src_xml.name, up_src_xml.size) if up_src_xml else None,
+                (up_ref.name, up_ref.size) if up_ref else None,
+                (up_ref_xml.name, up_ref_xml.size) if up_ref_xml else None,
+            )
+            if st.session_state.get("last_upload_sig") != upload_sig:
+                st.session_state["last_upload_sig"] = upload_sig
+                st.session_state.pop("reg_result", None)
+
+            if not up_src:
+                upload_missing.append("Source Raster")
+            if not up_src_xml:
+                upload_missing.append("Source Corresponding XML")
+            if not up_ref:
+                upload_missing.append("Reference Raster")
+            if not up_ref_xml:
+                upload_missing.append("Reference Corresponding XML")
+
+            if not upload_missing:
                 try:
-                    tmp_dir = ROOT_DIR / "results" / "temp_uploads"
-                    tmp_dir.mkdir(parents=True, exist_ok=True)
-                    s_p = tmp_dir / up_src.name
-                    r_p = tmp_dir / up_ref.name
-                    s_p.write_bytes(up_src.read())
-                    r_p.write_bytes(up_ref.read())
+                    tmp_pair_dir = ROOT_DIR / "results" / "temp_uploads" / "active_pair"
+                    src_dir = tmp_pair_dir / "src"
+                    ref_dir = tmp_pair_dir / "ref"
+                    if tmp_pair_dir.exists():
+                        shutil.rmtree(tmp_pair_dir, ignore_errors=True)
+                    src_dir.mkdir(parents=True, exist_ok=True)
+                    ref_dir.mkdir(parents=True, exist_ok=True)
 
-                    if up_src_xml:
-                        s_xml_p = s_p.with_suffix(".xml")
-                        s_xml_p.write_bytes(up_src_xml.read())
-                    if up_ref_xml:
-                        r_xml_p = r_p.with_suffix(".xml")
-                        r_xml_p.write_bytes(up_ref_xml.read())
+                    s_p = src_dir / Path(up_src.name).name
+                    s_xml_p = src_dir / Path(up_src_xml.name).name
+                    r_p = ref_dir / Path(up_ref.name).name
+                    r_xml_p = ref_dir / Path(up_ref_xml.name).name
 
-                    # Load with XML-calculated GSD priority
-                    src_lunar = load_lunar_image(s_p, gsd_override=effective_src_gsd if not up_src_xml else None, sensor_name=selected_src_code)
-                    ref_lunar = load_lunar_image(r_p, gsd_override=effective_ref_gsd if not up_ref_xml else None, sensor_name=selected_ref_code)
+                    s_p.write_bytes(up_src.getvalue())
+                    s_xml_p.write_bytes(up_src_xml.getvalue())
+                    r_p.write_bytes(up_ref.getvalue())
+                    r_xml_p.write_bytes(up_ref_xml.getvalue())
+
+                    # Load with strict XML verification and XML/GeoTIFF metadata extraction
+                    src_lunar = load_lunar_image(
+                        s_p,
+                        xml_path=s_xml_p,
+                        gsd_override=None,
+                        sensor_name=selected_src_code,
+                        require_xml=True
+                    )
+                    ref_lunar = load_lunar_image(
+                        r_p,
+                        xml_path=r_xml_p,
+                        gsd_override=None,
+                        sensor_name=selected_ref_code,
+                        require_xml=True
+                    )
 
                     s_bg = src_lunar.metadata.extra_attributes.get("bounds_geo")
                     r_bg = ref_lunar.metadata.extra_attributes.get("bounds_geo")
-                    if s_bg and r_bg:
-                        st.success(f"**:material/verified: PDS4 Georeferencing Active**<br>Source GSD: `{src_lunar.metadata.gsd:.2f}m` | Ref GSD: `{ref_lunar.metadata.gsd:.2f}m`<br>Physical Extent: Lon `[{s_bg[0]:.2f}°, {s_bg[2]:.2f}°]`, Lat `[{s_bg[1]:.2f}°, {s_bg[3]:.2f}°]`", icon=":material/check_circle:")
+                    s_pid = src_lunar.metadata.extra_attributes.get("product_id") or up_src_xml.name
+                    r_pid = ref_lunar.metadata.extra_attributes.get("product_id") or up_ref_xml.name
+                    geo_note = f"<br>Physical Extent: Lon `[{s_bg[0]:.2f}°, {s_bg[2]:.2f}°]`, Lat `[{s_bg[1]:.2f}°, {s_bg[3]:.2f}°]`" if (s_bg and r_bg) else ""
+                    st.success(
+                        f"**:material/verified: Corresponding XML Metadata Verified**<br>"
+                        f"Source: `{s_pid}` (`{src_lunar.metadata.gsd:.2f}m`)<br>"
+                        f"Reference: `{r_pid}` (`{ref_lunar.metadata.gsd:.2f}m`){geo_note}",
+                        icon=":material/check_circle:"
+                    )
                 except Exception as e:
-                    st.error(f"Error loading uploaded images: {e}", icon=":material/error:")
-            elif up_src or up_ref:
-                st.info("Uploaded 1 of 2 images. Please upload both to proceed.", icon=":material/info:")
+                    src_lunar = None
+                    ref_lunar = None
+                    upload_validation_error = str(e)
+                    st.session_state.pop("reg_result", None)
+                    st.error(f"**XML / Image Validation Error:** {e}", icon=":material/gpp_bad:")
+            else:
+                st.session_state.pop("reg_result", None)
+                if up_src or up_ref or up_src_xml or up_ref_xml:
+                    st.warning(f"Registration locked until all files are provided. Missing: {', '.join(upload_missing)}.", icon=":material/lock:")
 
         if src_lunar is not None and ref_lunar is not None:
             if st.button("Swap Source ↔ Reference", key="btn_swap_custom", icon=":material/swap_horiz:", help="Flip which image is Source (Moving) and which is Reference (Fixed)", use_container_width=True):
@@ -518,10 +578,34 @@ if "swap_roles" not in st.session_state:
 if st.session_state.get("swap_roles", False) and src_lunar is not None and ref_lunar is not None:
     src_lunar, ref_lunar = ref_lunar, src_lunar
 
-# Guidance screen when in Custom Upload mode and images are not yet provided
+# Guidance screen when in Custom Upload mode and images/XMLs are not yet provided or invalid
 if "Custom Registration & Upload" in mode and (src_lunar is None or ref_lunar is None):
     if "reg_result" not in st.session_state:
-        st.info("Upload both a Source / Moving image and a Reference / Fixed image in the sidebar to begin custom registration.", icon=":material/info:")
+        if "Upload Files" in custom_source:
+            if upload_validation_error:
+                st.error(f"**Registration Blocked — Corresponding XML Validation Failed:** {upload_validation_error}", icon=":material/gpp_bad:")
+            elif up_src and up_ref and (not up_src_xml or not up_ref_xml):
+                st.error("**Registration Blocked — Corresponding XML Files Required:** Both raster images are uploaded, but the registration pipeline cannot run until you upload the corresponding **Source XML** and **Reference XML** metadata files in the sidebar.", icon=":material/lock:")
+            else:
+                st.info("Upload both a Source / Moving image, a Reference / Fixed image, **and both corresponding XML metadata files** in the sidebar to unlock the registration pipeline.", icon=":material/info:")
+
+            col_chk1, col_chk2, col_chk3, col_chk4 = st.columns(4)
+            col_chk1.metric("1. Source Raster", "Uploaded" if up_src else "Missing")
+            col_chk2.metric("2. Source XML", "Uploaded" if up_src_xml else "Required")
+            col_chk3.metric("3. Reference Raster", "Uploaded" if up_ref else "Missing")
+            col_chk4.metric("4. Reference XML", "Uploaded" if up_ref_xml else "Required")
+
+            st.button(
+                "EXECUTE REGISTRATION PIPELINE",
+                type="primary",
+                icon=":material/lock:",
+                disabled=True,
+                key="btn_execute_locked",
+                help="Upload both images and their corresponding PDS4/SAC XML files to unlock registration",
+                use_container_width=True
+            )
+        else:
+            st.info("Select both a Source / Moving swath and a Reference / Fixed swath in the sidebar to begin registration.", icon=":material/info:")
         
         c_g1, c_g2 = st.columns(2)
         with c_g1:
@@ -535,9 +619,9 @@ if "Custom Registration & Upload" in mode and (src_lunar is None or ref_lunar is
             """)
         with c_g2:
             st.markdown(r"""
-            ### :material/straighten: Recommended Input Specifications
-            * **File Formats:** GeoTIFF, TIFF, PNG, JPEG, NPY
-            * **Radiometric Depths:** 8-bit, 12-bit raw, 16-bit, 32-bit float
+            ### :material/straighten: Required Custom Upload Specifications
+            * **File Formats:** GeoTIFF, TIFF, PNG, JPEG, NPY + corresponding `.xml`
+            * **Metadata Requirement:** PRADAN PDS4 (`<Product_Observational>`) or ISRO SAC (`<product>`) XML required for both images
             * **GIS Coordinate System:** IAU-2000 Lunar Datum ($R = 1737.4\text{ km}$)
             * **Illumination Resilience:** Fourier Phase Congruency resolves $180^\circ$ shadow inversions
             """)
@@ -594,7 +678,8 @@ if src_lunar is not None and ref_lunar is not None:
                     use_multimodal_encoder=use_multimodal,
                     use_spatial_anms=use_anms,
                     use_subpixel=use_subpixel,
-                    deep_matcher=cached_matcher
+                    deep_matcher=cached_matcher,
+                    require_xml_metadata=("Upload Files" in custom_source)
                 )
                 pipeline = LunarRegistrationPipeline(config=cfg)
                 res = pipeline.run(src_lunar, ref_lunar)

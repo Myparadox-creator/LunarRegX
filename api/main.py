@@ -84,6 +84,8 @@ def list_benchmarks():
 async def gis_pre_register(
     source_file: UploadFile = File(..., description="Source / Moving lunar image (TIFF, PNG, JPEG)"),
     reference_file: UploadFile = File(..., description="Reference / Fixed lunar image (TIFF, PNG, JPEG)"),
+    source_xml: Optional[UploadFile] = File(None, description="Optional Source PDS4 / SAC XML label (.xml)"),
+    reference_xml: Optional[UploadFile] = File(None, description="Optional Reference PDS4 / SAC XML label (.xml)"),
     sensor: Optional[str] = Form("ohrc", description="Sensor profile key: ohrc, tmc2, iirs, lroc_nac, lroc_wac")
 ):
     """
@@ -100,25 +102,42 @@ async def gis_pre_register(
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
-        s_path = tmp_path / source_file.filename
-        r_path = tmp_path / reference_file.filename
+        src_dir = tmp_path / "src"
+        ref_dir = tmp_path / "ref"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        ref_dir.mkdir(parents=True, exist_ok=True)
+
+        s_path = src_dir / Path(source_file.filename or "source.tif").name
+        r_path = ref_dir / Path(reference_file.filename or "reference.tif").name
         s_path.write_bytes(await source_file.read())
         r_path.write_bytes(await reference_file.read())
 
+        s_xml_path = None
+        if source_xml is not None:
+            s_xml_path = src_dir / Path(source_xml.filename or "source.xml").name
+            s_xml_path.write_bytes(await source_xml.read())
+
+        r_xml_path = None
+        if reference_xml is not None:
+            r_xml_path = ref_dir / Path(reference_xml.filename or "reference.xml").name
+            r_xml_path.write_bytes(await reference_xml.read())
+
         try:
-            src_lunar = load_lunar_image(s_path, gsd_override=gsd_val)
-            ref_lunar = load_lunar_image(r_path, gsd_override=gsd_val)
+            src_lunar = load_lunar_image(s_path, xml_path=s_xml_path, gsd_override=gsd_val, require_xml=(source_xml is not None))
+            ref_lunar = load_lunar_image(r_path, xml_path=r_xml_path, gsd_override=gsd_val, require_xml=(reference_xml is not None))
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to decode lunar images: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to decode lunar images or XML metadata: {str(e)}")
 
         analyzer = GISPreRegistrationAnalyzer()
         res = analyzer.analyze(src_lunar, ref_lunar)
         return res.to_dict()
 
-@app.post("/register", summary="Register Source Image against Reference Image")
+@app.post("/register", summary="Register Source Image against Reference Image (Corresponding XML Required)")
 async def register_images(
     source_file: UploadFile = File(..., description="Source / Moving lunar image (TIFF, PNG, JPEG)"),
+    source_xml: UploadFile = File(..., description="Corresponding Source PDS4 / SAC XML metadata file (.xml)"),
     reference_file: UploadFile = File(..., description="Reference / Fixed lunar image (TIFF, PNG, JPEG)"),
+    reference_xml: UploadFile = File(..., description="Corresponding Reference PDS4 / SAC XML metadata file (.xml)"),
     sensor: Optional[str] = Form("ohrc", description="Sensor profile key: ohrc, tmc2, iirs, lroc_nac, lroc_wac"),
     method: str = Form("PHASE_STRUCTURAL", description="Feature engine: PHASE_STRUCTURAL, SIFT, AKAZE, LEARNED"),
     model: str = Form("AUTO", description="Geometric model: AUTO, SIMILARITY, AFFINE, HOMOGRAPHY"),
@@ -127,6 +146,7 @@ async def register_images(
 ):
     """
     Executes end-to-end multi-modal registration between uploaded source and reference images.
+    Requires both corresponding PDS4 / SAC XML metadata files before registration can proceed.
     Returns quantitative metrics, transformation model, spatial coverage, and inlier statistics.
     """
     cfg_path = ROOT_DIR / "configs" / f"{sensor}.yaml"
@@ -138,30 +158,40 @@ async def register_images(
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_path = Path(tmp_dir)
-        s_path = tmp_path / source_file.filename
-        r_path = tmp_path / reference_file.filename
+        src_dir = tmp_path / "src"
+        ref_dir = tmp_path / "ref"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        ref_dir.mkdir(parents=True, exist_ok=True)
 
-        s_bytes = await source_file.read()
-        r_bytes = await reference_file.read()
-        s_path.write_bytes(s_bytes)
-        r_path.write_bytes(r_bytes)
+        s_path = src_dir / Path(source_file.filename or "source.tif").name
+        s_xml_path = src_dir / Path(source_xml.filename or "source.xml").name
+        r_path = ref_dir / Path(reference_file.filename or "reference.tif").name
+        r_xml_path = ref_dir / Path(reference_xml.filename or "reference.xml").name
+
+        s_path.write_bytes(await source_file.read())
+        s_xml_path.write_bytes(await source_xml.read())
+        r_path.write_bytes(await reference_file.read())
+        r_xml_path.write_bytes(await reference_xml.read())
 
         try:
-            src_lunar = load_lunar_image(s_path, gsd_override=gsd_val)
-            ref_lunar = load_lunar_image(r_path, gsd_override=gsd_val)
+            src_lunar = load_lunar_image(s_path, xml_path=s_xml_path, gsd_override=gsd_val, require_xml=True)
+            ref_lunar = load_lunar_image(r_path, xml_path=r_xml_path, gsd_override=gsd_val, require_xml=True)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to decode lunar images: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to validate lunar images or corresponding XML metadata: {str(e)}")
 
         pipeline_cfg = RegistrationPipelineConfig(
             feature_method=method.upper(),
             preferred_model=model.upper(),
             use_subpixel=use_subpixel,
-            use_spatial_anms=use_anms
+            use_spatial_anms=use_anms,
+            require_xml_metadata=True
         )
         pipeline = LunarRegistrationPipeline(config=pipeline_cfg)
 
         try:
             res = pipeline.run(src_lunar, ref_lunar)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
